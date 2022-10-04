@@ -35,9 +35,10 @@ fn main()
   let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
   let vertices: Vec<f32> = vec![
-    -0.5, -0.5, 0.0,
-    0.5, -0.5, 0.0,
-    0.0, 0.5, 0.0,
+    // positions        // colours
+    -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,  // bottom right
+    0.5, -0.5, 0.0,     0.0, 1.0, 0.0,  // bottom left
+    0.0, 0.5, 0.0,      0.0, 0.0, 1.0,  // top centre
   ];
 
   let mut vbo: gl::types::GLuint = 0;
@@ -68,8 +69,17 @@ fn main()
       3, // the number of components per generic vertex attribute
       gl::FLOAT,
       gl::FALSE, // normalized (int-to-float conversion)
-      (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+      (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
       std::ptr::null() // offset of first component
+    );
+    gl::EnableVertexAttribArray(1);
+    gl::VertexAttribPointer(
+      1, // index of generic vertex attribute ("layout (location = 0)")
+      3, // the number of components per generic vertex attribute
+      gl::FLOAT,
+      gl::FALSE, // normalized (int-to-float conversion)
+      (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+      (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of first component
     );
     gl::BindBuffer(gl::ARRAY_BUFFER, 0);
     gl::BindVertexArray(0);
