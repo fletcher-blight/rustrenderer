@@ -1,6 +1,6 @@
-
 use gl::types::*;
 use std::ffi::{ CStr, CString };
+use crate::resources::{ self, Resources };
 
 pub struct Shader {
   gl: gl::Gl,

@@ -1,15 +1,19 @@
 extern crate sdl2;
 extern crate gl;
 
+mod render_gl;
+mod resources;
+
+use resources::Resources;
+use std::path::Path;
 use std::ffi::CString;
 use gl::types::*;
-
-mod render_gl;
 
 fn main()
 {
   let sdl = sdl2::init().unwrap();
   let video_subsystem = sdl.video().unwrap();
+  let res = Resources::from_relative_exe_path(Path::new("assets")).unwrap();
 
   let gl_attr = video_subsystem.gl_attr();
   gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
