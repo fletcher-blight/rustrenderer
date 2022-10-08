@@ -38,7 +38,9 @@ fn main() -> Result<(), Error> {
 
   let vert_shader = shader_from_source(opengl::ShaderType::Vertex, include_str!("triangle.vert"))?;
   let frag_shader = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle.frag"))?;
-  let program = program_from_shaders(&[vert_shader, frag_shader])?;
+  let frag_shader2 = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle2.frag"))?;
+  let program1 = program_from_shaders(&[vert_shader, frag_shader])?;
+  let program2 = program_from_shaders(&[vert_shader, frag_shader2])?;
 
   let vertices1: [f32; 9] = [
     0.5, 0.5, 0.0,
@@ -98,9 +100,11 @@ fn main() -> Result<(), Error> {
 
     opengl::clear(opengl::ClearBit::ColourBufferBit);
 
-    opengl::use_program(program);
+    opengl::use_program(program1);
     opengl::bind_vertex_array(vao1);
     opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
+
+    opengl::use_program(program2);
     opengl::bind_vertex_array(vao2);
     opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
 
