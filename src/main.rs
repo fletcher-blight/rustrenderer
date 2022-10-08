@@ -38,44 +38,19 @@ fn main() -> Result<(), Error> {
 
   let vert_shader = shader_from_source(opengl::ShaderType::Vertex, include_str!("triangle.vert"))?;
   let frag_shader = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle.frag"))?;
-  let frag_shader2 = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle2.frag"))?;
-  let program1 = program_from_shaders(&[vert_shader, frag_shader])?;
-  let program2 = program_from_shaders(&[vert_shader, frag_shader2])?;
+  let program = program_from_shaders(&[vert_shader, frag_shader])?;
 
   let vertices1: [f32; 9] = [
-    0.5, 0.5, 0.0,
-    0.75, -0.5, 0.0,
-    0.25, -0.5, 0.0,
+    0.0, 0.5, 0.0,
+    0.5, -0.5, 0.0,
+    -0.5, -0.5, 0.0,
   ];
 
-  let vertices2: [f32; 9] = [
-    -0.5, 0.5, 0.0,
-    -0.75, -0.5, 0.0,
-    -0.25, -0.5, 0.0,
-  ];
-
-  let vao1 = opengl::gen_vertex_array();
-  let vbo1 = opengl::gen_buffer();
-  opengl::bind_vertex_array(vao1);
-  opengl::bind_buffer(opengl::BufferType::Array, vbo1);
+  let vao = opengl::gen_vertex_array();
+  let vbo = opengl::gen_buffer();
+  opengl::bind_vertex_array(vao);
+  opengl::bind_buffer(opengl::BufferType::Array, vbo);
   opengl::set_buffer_data(opengl::BufferType::Array, &vertices1, opengl::DrawType::Static);
-  opengl::set_vertex_attrib_pointer(
-    0,
-    3,
-    opengl::AttributeType::Float,
-    false,
-    3 * std::mem::size_of::<f32>() as i32,
-    0);
-  opengl::enable_vertex_attrib_array(0);
-  opengl::bind_buffer(opengl::BufferType::Array, 0);
-  opengl::bind_vertex_array(0);
-  opengl::check_for_error()?;
-
-  let vao2 = opengl::gen_vertex_array();
-  let vbo2 = opengl::gen_buffer();
-  opengl::bind_vertex_array(vao2);
-  opengl::bind_buffer(opengl::BufferType::Array, vbo2);
-  opengl::set_buffer_data(opengl::BufferType::Array, &vertices2, opengl::DrawType::Static);
   opengl::set_vertex_attrib_pointer(
     0,
     3,
@@ -100,12 +75,8 @@ fn main() -> Result<(), Error> {
 
     opengl::clear(opengl::ClearBit::ColourBufferBit);
 
-    opengl::use_program(program1);
-    opengl::bind_vertex_array(vao1);
-    opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
-
-    opengl::use_program(program2);
-    opengl::bind_vertex_array(vao2);
+    opengl::use_program(program);
+    opengl::bind_vertex_array(vao);
     opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
 
     opengl::check_for_error()?;
