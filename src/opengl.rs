@@ -42,25 +42,40 @@ pub fn check_for_error() -> Result<(), Error> {
   }
 }
 
-#[repr(u32)]
 pub enum ClearBit {
-  ColourBufferBit = gl::COLOR_BUFFER_BIT,
+  ColourBufferBit,
+}
+
+impl From<ClearBit> for GLenum {
+  fn from(value: ClearBit) -> Self {
+    match value {
+      ClearBit::ColourBufferBit => gl::COLOR_BUFFER_BIT,
+    }
+  }
 }
 
 pub fn clear(bitfield: ClearBit) -> () {
-  unsafe { gl::Clear(bitfield as GLenum) };
+  unsafe { gl::Clear(bitfield.into()) };
 }
 
 pub type Id = GLuint;
 
-#[repr(u32)]
 pub enum Shader {
-  Vertex = gl::VERTEX_SHADER,
-  Fragment = gl::FRAGMENT_SHADER,
+  Vertex,
+  Fragment,
+}
+
+impl From<Shader> for GLenum {
+  fn from(value: Shader) -> Self {
+    match value {
+      Shader::Vertex => gl::VERTEX_SHADER,
+      Shader::Fragment => gl::FRAGMENT_SHADER,
+    }
+  }
 }
 
 pub fn create_shader(kind: Shader) -> Id {
-  unsafe { gl::CreateShader(kind as GLuint) }
+  unsafe { gl::CreateShader(kind.into()) }
 }
 
 pub fn set_shader_source(id: Id, source: &str) -> Result<(), Error> {
