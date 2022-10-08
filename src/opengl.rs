@@ -18,6 +18,7 @@ pub enum Error {
   ShaderCompilation(String),
   ProgramLinkage(String),
   GL(GLError),
+  UnknownUniformName(String),
 }
 
 pub fn load_with<Loader>(loader: Loader)
@@ -252,10 +253,22 @@ impl From<DrawMode> for GLenum {
   }
 }
 
-pub fn draw_arrays(mode: DrawMode, start: i32, num_indicies: i32) -> () {
-  unsafe { gl::DrawArrays(mode.into(), start, num_indicies) };
+pub fn draw_arrays(mode: DrawMode, start: i32, num_indices: i32) -> () {
+  unsafe { gl::DrawArrays(mode.into(), start, num_indices) };
 }
 
-pub fn draw_elements(mode: DrawMode, num_indicies: i32, attribute_type: AttributeType, offset: i32) -> () {
-  unsafe { gl::DrawElements(mode.into(), num_indicies, attribute_type.into(), offset as *const std::os::raw::c_void) };
+pub fn draw_elements(mode: DrawMode, num_indices: i32, attribute_type: AttributeType, offset: i32) -> () {
+  unsafe { gl::DrawElements(mode.into(), num_indices, attribute_type.into(), offset as *const std::os::raw::c_void) };
+}
+
+pub fn get_uniform_location(shader_id: Id, name: &CStr) -> Result<Id, Error> {
+  let res: i32 = unsafe { gl::GetUniformLocation(shader_id, name.as_ptr()) };
+  if res < 0 {
+    return Err(Error::UnknownUniformName(name.to_string_lossy().into_owned()));
+  }
+  Ok(res as Id)
+}
+
+pub fn set_uniform4f(uniform_id: Id, v1: f32, v2: f32, v3: f32, v4: f32) -> () {
+  unsafe { gl::Uniform4f(uniform_id as i32, v1, v2, v3, v4) };
 }
