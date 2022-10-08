@@ -155,12 +155,14 @@ pub fn gen_buffer() -> Id {
 
 pub enum BufferType {
   Array,
+  ElementArray,
 }
 
 impl From<BufferType> for GLenum {
   fn from(value: BufferType) -> Self {
     match value {
       BufferType::Array => gl::ARRAY_BUFFER,
+      BufferType::ElementArray => gl::ELEMENT_ARRAY_BUFFER,
     }
   }
 }
@@ -204,12 +206,14 @@ pub fn bind_vertex_array(vao: Id) -> () {
 
 pub enum AttributeType {
   Float,
+  UnsignedInt,
 }
 
 impl From<AttributeType> for GLenum {
   fn from(value: AttributeType) -> Self {
     match value {
       AttributeType::Float => gl::FLOAT,
+      AttributeType::UnsignedInt => gl::UNSIGNED_INT,
     }
   }
 }
@@ -253,4 +257,8 @@ impl From<DrawMode> for GLenum {
 
 pub fn draw_arrays(mode: DrawMode, start: i32, num_indicies: i32) -> () {
   unsafe { gl::DrawArrays(mode.into(), start, num_indicies) };
+}
+
+pub fn draw_elements(mode: DrawMode, num_indicies: i32, attribute_type: AttributeType, offset: i32) -> () {
+  unsafe { gl::DrawElements(mode.into(), num_indicies, attribute_type.into(), offset as *const std::os::raw::c_void) };
 }

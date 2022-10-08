@@ -40,17 +40,26 @@ fn main() -> Result<(), Error> {
   let frag_shader = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle.frag"))?;
   let program = program_from_shaders(&[vert_shader, frag_shader])?;
 
-  let verticies: [f32; 9] = [
-    -0.5, -0.5, 0.0,
+  let vertices: [f32; 12] = [
+    0.5, 0.5, 0.0,
     0.5, -0.5, 0.0,
-    0.0, 0.5, 0.0,
+    -0.5, 0.5, 0.0,
+    -0.5, -0.5, 0.0,
+  ];
+
+  let indices: [u32; 6] = [
+    0, 1, 2,
+    2, 3, 1,
   ];
 
   let vao = opengl::gen_vertex_array();
   let vbo = opengl::gen_buffer();
+  let ebo = opengl::gen_buffer();
   opengl::bind_vertex_array(vao);
   opengl::bind_buffer(opengl::BufferType::Array, vbo);
-  opengl::set_buffer_data(opengl::BufferType::Array, &verticies, opengl::DrawType::Static);
+  opengl::set_buffer_data(opengl::BufferType::Array, &vertices, opengl::DrawType::Static);
+  opengl::bind_buffer(opengl::BufferType::ElementArray, ebo);
+  opengl::set_buffer_data(opengl::BufferType::ElementArray, &indices, opengl::DrawType::Static);
   opengl::set_vertex_attrib_pointer(
     0,
     3,
@@ -61,6 +70,7 @@ fn main() -> Result<(), Error> {
   opengl::enable_vertex_attrib_array(0);
   opengl::bind_buffer(opengl::BufferType::Array, 0);
   opengl::bind_vertex_array(0);
+  opengl::bind_buffer(opengl::BufferType::ElementArray, 0);
   opengl::check_for_error()?;
 
   opengl::clear_colour(0.3, 0.3, 0.5, 1.0);
@@ -77,7 +87,7 @@ fn main() -> Result<(), Error> {
 
     opengl::use_program(program);
     opengl::bind_vertex_array(vao);
-    opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
+    opengl::draw_elements(opengl::DrawMode::Triangles, 6, opengl::AttributeType::UnsignedInt, 0);
 
     opengl::check_for_error()?;
     window.gl_swap_window();
