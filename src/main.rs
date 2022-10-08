@@ -2,12 +2,19 @@ mod opengl;
 
 #[derive(Debug)]
 enum Error {
-  Initialisation(String)
+  Initialisation(String),
+  Shaders(String),
 }
 
 impl From<sdl2::video::WindowBuildError> for Error {
   fn from(error: sdl2::video::WindowBuildError) -> Self {
     Error::Initialisation(format!("{}", error))
+  }
+}
+
+impl From<opengl::Error> for Error {
+  fn from(error: opengl::Error) -> Self {
+    Error::Shaders(format!("{:?}", error))
   }
 }
 
@@ -17,7 +24,7 @@ fn main() -> Result<(), Error> {
   {
     let gl_attr = video_subsystem.gl_attr();
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-    gl_attr.set_context_version(3, 3);
+    gl_attr.set_context_version(4, 5);
   }
   let window = video_subsystem
     .window("Rust Renderer", 720, 480)
@@ -25,9 +32,15 @@ fn main() -> Result<(), Error> {
     .resizable()
     .build()?;
   let _gl_context = window.gl_create_context().map_err(|s| Error::Initialisation(s))?;
+  let _gl = opengl::load_with(|s| video_subsystem.gl_get_proc_address(s));
 
-  opengl::load_with(|s| video_subsystem.gl_get_proc_address(s));
+  opengl::check_for_error()?;
   opengl::clear_colour(0.3, 0.3, 0.5, 1.0);
+
+  let vert_shader = shader_from_source(opengl::Shader::Vertex, include_str!("triangle.vert"))?;
+  let frag_shader = shader_from_source(opengl::Shader::Fragment, include_str!("triangle.frag"))?;
+  let program = program_from_shaders(&[vert_shader, frag_shader])?;
+  opengl::use_program(program);
 
   let mut event_pump = sdl.event_pump().map_err(|s| Error::Initialisation(s))?;
   'main: loop {
@@ -39,8 +52,35 @@ fn main() -> Result<(), Error> {
     }
 
     opengl::clear(opengl::ClearBit::ColourBufferBit);
+
+    opengl::check_for_error()?;
     window.gl_swap_window();
   }
 
   Ok(())
+}
+
+fn shader_from_source(shader: opengl::Shader, source: &str) -> Result<opengl::Id, Error> {
+  let id = opengl::create_shader(shader);
+  opengl::set_shader_source(id, source)?;
+  opengl::compile_shader(id);
+  opengl::check_shader_compilation(id)?;
+  opengl::check_for_error()?;
+  Ok(id)
+}
+
+fn program_from_shaders(shaders: &[opengl::Id]) -> Result<opengl::Id, Error> {
+  let id = opengl::create_program();
+  for shader in shaders {
+    opengl::attach_shader(id, *shader);
+  }
+
+  opengl::link_program(id);
+  opengl::check_program_linking(id)?;
+  opengl::check_for_error()?;
+
+  for shader in shaders {
+    opengl::detach_shader(id, *shader);
+  }
+  Ok(id)
 }
