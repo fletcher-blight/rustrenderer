@@ -60,21 +60,21 @@ pub fn clear(bitfield: ClearBit) -> () {
 
 pub type Id = GLuint;
 
-pub enum Shader {
+pub enum ShaderType {
   Vertex,
   Fragment,
 }
 
-impl From<Shader> for GLenum {
-  fn from(value: Shader) -> Self {
+impl From<ShaderType> for GLenum {
+  fn from(value: ShaderType) -> Self {
     match value {
-      Shader::Vertex => gl::VERTEX_SHADER,
-      Shader::Fragment => gl::FRAGMENT_SHADER,
+      ShaderType::Vertex => gl::VERTEX_SHADER,
+      ShaderType::Fragment => gl::FRAGMENT_SHADER,
     }
   }
 }
 
-pub fn create_shader(kind: Shader) -> Id {
+pub fn create_shader(kind: ShaderType) -> Id {
   unsafe { gl::CreateShader(kind.into()) }
 }
 
@@ -145,4 +145,112 @@ fn create_whitespace_cstring_with_len(len: usize) -> CString {
   buffer.extend([b' '].iter().cycle().take(len));
   // convert buffer to CString
   unsafe { CString::from_vec_unchecked(buffer) }
+}
+
+pub fn gen_buffer() -> Id {
+  let mut bo: GLuint = 0;
+  unsafe { gl::GenBuffers(1, &mut bo) };
+  bo
+}
+
+pub enum BufferType {
+  Array,
+}
+
+impl From<BufferType> for GLenum {
+  fn from(value: BufferType) -> Self {
+    match value {
+      BufferType::Array => gl::ARRAY_BUFFER,
+    }
+  }
+}
+
+pub fn bind_buffer(buffer_type: BufferType, id: Id) -> () {
+  unsafe { gl::BindBuffer(buffer_type.into(), id) };
+}
+
+pub enum DrawType {
+  Static,
+}
+
+impl From<DrawType> for GLenum {
+  fn from(value: DrawType) -> Self {
+    match value {
+      DrawType::Static => gl::STATIC_DRAW,
+    }
+  }
+}
+
+pub fn set_buffer_data<Data>(buffer_type: BufferType, buffer: &[Data], draw_type: DrawType) -> () {
+  unsafe {
+    gl::BufferData(
+      buffer_type.into(),
+      (buffer.len() * std::mem::size_of::<Data>()) as GLsizeiptr,
+      buffer.as_ptr() as *const GLvoid,
+      draw_type.into()
+    )
+  };
+}
+
+pub fn gen_vertex_array() -> Id {
+  let mut vao: Id = 0;
+  unsafe { gl::GenVertexArrays(1, &mut vao) };
+  vao
+}
+
+pub fn bind_vertex_array(vao: Id) -> () {
+  unsafe { gl::BindVertexArray(vao) };
+}
+
+pub enum AttributeType {
+  Float,
+}
+
+impl From<AttributeType> for GLenum {
+  fn from(value: AttributeType) -> Self {
+    match value {
+      AttributeType::Float => gl::FLOAT,
+    }
+  }
+}
+
+pub fn set_vertex_attrib_pointer(
+  index: u32,
+  components_per_attribute: i32,
+  attribute_type: AttributeType,
+  normalise: bool,
+  stride: i32,
+  offset: u32)
+  -> ()
+{
+  unsafe {
+    gl::VertexAttribPointer(
+      index,
+      components_per_attribute,
+      attribute_type.into(),
+      normalise as u8,
+      stride,
+      offset as *const std::os::raw::c_void
+    )
+  };
+}
+
+pub fn enable_vertex_attrib_array(index: u32) -> () {
+  unsafe { gl::EnableVertexAttribArray(index) };
+}
+
+pub enum DrawMode {
+  Triangles,
+}
+
+impl From<DrawMode> for GLenum {
+  fn from(value: DrawMode) -> Self {
+    match value {
+      DrawMode::Triangles => gl::TRIANGLES,
+    }
+  }
+}
+
+pub fn draw_arrays(mode: DrawMode, start: i32, num_indicies: i32) -> () {
+  unsafe { gl::DrawArrays(mode.into(), start, num_indicies) };
 }
