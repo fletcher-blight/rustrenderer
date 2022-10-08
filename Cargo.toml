@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 sdl2 = { version = "0.35.2", features = ["bundled", "static-link"] }
-opengl = { path = "lib/opengl" }
+gl = "0.14.0"
