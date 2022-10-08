@@ -88,7 +88,7 @@ fn main() -> Result<(), Error> {
 
 fn shader_from_source(shader: opengl::ShaderType, source: &str) -> Result<opengl::Id, Error> {
   let id = opengl::create_shader(shader);
-  opengl::set_shader_source(id, source)?;
+  opengl::set_shader_source(id, &std::ffi::CString::new(source).map_err(|s| Error::Shaders(format!("Invalid CString of source: {}", s)))?);
   opengl::compile_shader(id);
   opengl::check_shader_compilation(id)?;
   opengl::check_for_error()?;

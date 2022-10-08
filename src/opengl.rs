@@ -1,6 +1,6 @@
 extern crate gl;
 
-use std::ffi::CString;
+use std::ffi::{ CStr, CString };
 use gl::types::*;
 
 #[derive(Debug)]
@@ -15,7 +15,6 @@ pub enum GLError {
 
 #[derive(Debug)]
 pub enum Error {
-  InvalidShaderSource(String),
   ShaderCompilation(String),
   ProgramLinkage(String),
   GL(GLError),
@@ -78,10 +77,8 @@ pub fn create_shader(kind: ShaderType) -> Id {
   unsafe { gl::CreateShader(kind.into()) }
 }
 
-pub fn set_shader_source(id: Id, source: &str) -> Result<(), Error> {
-  let source = CString::new(source).map_err(|ne| Error::InvalidShaderSource(format!("{}", ne)))?;
+pub fn set_shader_source(id: Id, source: &CStr) {
   unsafe { gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null()) };
-  Ok(())
 }
 
 pub fn compile_shader(id: Id) -> () {
