@@ -72,6 +72,10 @@ fn main() -> Result<(), Error> {
   opengl::bind_vertex_array(0);
   opengl::check_for_error()?;
 
+  opengl::use_program(program);
+  let offsetId = opengl::get_uniform_location(program, &std::ffi::CString::new("horizontalOffset").unwrap())?;
+  opengl::set_uniform1f(offsetId, 0.3);
+
   opengl::clear_colour(0.3, 0.3, 0.5, 1.0);
   let mut event_pump = sdl.event_pump().map_err(|s| Error::Initialisation(s))?;
   'main: loop {

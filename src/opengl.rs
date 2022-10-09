@@ -269,6 +269,10 @@ pub fn get_uniform_location(shader_id: Id, name: &CStr) -> Result<Id, Error> {
   Ok(res as Id)
 }
 
+pub fn set_uniform1f(uniform_id: Id, v1: f32) -> () {
+  unsafe { gl::Uniform1f(uniform_id as i32, v1) };
+}
+
 pub fn set_uniform4f(uniform_id: Id, v1: f32, v2: f32, v3: f32, v4: f32) -> () {
   unsafe { gl::Uniform4f(uniform_id as i32, v1, v2, v3, v4) };
 }
