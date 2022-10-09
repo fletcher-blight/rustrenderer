@@ -1,6 +1,6 @@
 extern crate gl;
 
-use std::ffi::{ CStr, CString };
+use std::ffi::CString;
 use gl::types::*;
 
 #[derive(Debug)]
@@ -15,6 +15,7 @@ pub enum GLError {
 
 #[derive(Debug)]
 pub enum Error {
+  CanNotConvertToCString(String),
   ShaderCompilation(String),
   ProgramLinkage(String),
   GL(GLError),
@@ -78,8 +79,10 @@ pub fn create_shader(kind: ShaderType) -> Id {
   unsafe { gl::CreateShader(kind.into()) }
 }
 
-pub fn set_shader_source(id: Id, source: &CStr) {
+pub fn set_shader_source(id: Id, source: &str) -> Result<(), Error> {
+  let source = CString::new(source).map_err(|e| Error::CanNotConvertToCString(e.to_string()))?;
   unsafe { gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null()) };
+  Ok(())
 }
 
 pub fn compile_shader(id: Id) -> () {
@@ -261,7 +264,8 @@ pub fn draw_elements(mode: DrawMode, num_indices: i32, attribute_type: Attribute
   unsafe { gl::DrawElements(mode.into(), num_indices, attribute_type.into(), offset as *const std::os::raw::c_void) };
 }
 
-pub fn get_uniform_location(shader_id: Id, name: &CStr) -> Result<Id, Error> {
+pub fn get_uniform_location(shader_id: Id, name: &str) -> Result<Id, Error> {
+  let name = CString::new(name).map_err(|e| Error::CanNotConvertToCString(e.to_string()))?;
   let res: i32 = unsafe { gl::GetUniformLocation(shader_id, name.as_ptr()) };
   if res < 0 {
     return Err(Error::UnknownUniformName(name.to_string_lossy().into_owned()));
