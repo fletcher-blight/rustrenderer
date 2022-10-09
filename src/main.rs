@@ -1,5 +1,3 @@
-mod opengl;
-
 #[derive(Debug)]
 enum Error {
   Initialisation(String),
