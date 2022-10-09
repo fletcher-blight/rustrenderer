@@ -40,10 +40,11 @@ fn main() -> Result<(), Error> {
   let frag_shader = shader_from_source(opengl::ShaderType::Fragment, include_str!("triangle.frag"))?;
   let program = program_from_shaders(&[vert_shader, frag_shader])?;
 
-  let vertices: [f32; 9] = [
-    0.0, 0.5, 0.0,
-    0.5, -0.5, 0.0,
-    -0.5, -0.5, 0.0,
+  let vertices: [f32; 18] = [
+    // position       colour
+    0.0, 0.5, 0.0,    1.0, 0.0, 0.0,
+    0.5, -0.5, 0.0,   0.0, 1.0, 0.0,
+    -0.5, -0.5, 0.0,  0.0, 0.0, 1.0,
   ];
 
   let vao = opengl::gen_vertex_array();
@@ -56,17 +57,22 @@ fn main() -> Result<(), Error> {
     3,
     opengl::AttributeType::Float,
     false,
-    3 * std::mem::size_of::<f32>() as i32,
+    6 * std::mem::size_of::<f32>() as i32,
     0);
   opengl::enable_vertex_attrib_array(0);
+  opengl::set_vertex_attrib_pointer(
+    1,
+    3,
+    opengl::AttributeType::Float,
+    false,
+    6 * std::mem::size_of::<f32>() as i32,
+    3 * std::mem::size_of::<f32>() as u32);
+  opengl::enable_vertex_attrib_array(1);
   opengl::bind_buffer(opengl::BufferType::Array, 0);
   opengl::bind_vertex_array(0);
   opengl::check_for_error()?;
 
-  let colour_id = opengl::get_uniform_location(program, &std::ffi::CString::new("singleColour").unwrap())?;
-
   opengl::clear_colour(0.3, 0.3, 0.5, 1.0);
-  let start_time = std::time::Instant::now();
   let mut event_pump = sdl.event_pump().map_err(|s| Error::Initialisation(s))?;
   'main: loop {
     for event in event_pump.poll_iter() {
@@ -80,8 +86,6 @@ fn main() -> Result<(), Error> {
 
     opengl::use_program(program);
     opengl::bind_vertex_array(vao);
-    let tick = std::time::Instant::now().duration_since(start_time).as_secs_f32();
-    opengl::set_uniform4f(colour_id, 0.1, tick.sin() * 0.5 + 0.5, 0.1, 1.0);
     opengl::draw_arrays(opengl::DrawMode::Triangles, 0, 3);
 
     opengl::check_for_error()?;
