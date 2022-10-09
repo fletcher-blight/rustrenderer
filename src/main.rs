@@ -60,21 +60,9 @@ fn main() -> Result<(), Error> {
     6 * std::mem::size_of::<f32>() as i32,
     0);
   opengl::enable_vertex_attrib_array(0);
-  opengl::set_vertex_attrib_pointer(
-    1,
-    3,
-    opengl::AttributeType::Float,
-    false,
-    6 * std::mem::size_of::<f32>() as i32,
-    3 * std::mem::size_of::<f32>() as u32);
-  opengl::enable_vertex_attrib_array(1);
   opengl::bind_buffer(opengl::BufferType::Array, 0);
   opengl::bind_vertex_array(0);
   opengl::check_for_error()?;
-
-  opengl::use_program(program);
-  let offsetId = opengl::get_uniform_location(program, &std::ffi::CString::new("horizontalOffset").unwrap())?;
-  opengl::set_uniform1f(offsetId, 0.3);
 
   opengl::clear_colour(0.3, 0.3, 0.5, 1.0);
   let mut event_pump = sdl.event_pump().map_err(|s| Error::Initialisation(s))?;
