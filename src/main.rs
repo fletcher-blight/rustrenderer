@@ -60,6 +60,14 @@ fn main() -> Result<(), Error> {
     6 * std::mem::size_of::<f32>() as i32,
     0);
   opengl::enable_vertex_attrib_array(0);
+  opengl::set_vertex_attrib_pointer(
+    1,
+    3,
+    opengl::AttributeType::Float,
+    false,
+    6 * std::mem::size_of::<f32>() as i32,
+    3 * std::mem::size_of::<f32>() as u32);
+  opengl::enable_vertex_attrib_array(1);
   opengl::bind_buffer(opengl::BufferType::Array, 0);
   opengl::bind_vertex_array(0);
   opengl::check_for_error()?;
