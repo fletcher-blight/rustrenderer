@@ -5,6 +5,7 @@ pub mod vertex_array;
 pub mod buffer;
 pub mod uniform;
 pub mod draw;
+pub mod texture;
 
 pub fn load_with<Loader>(loader: Loader)
   where Loader: Fn(&str) -> *const() {
