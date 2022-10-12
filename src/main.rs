@@ -78,10 +78,10 @@ fn main() -> Result<(), String> {
     #[rustfmt::skip]
     let vertices: [f32; 20] = [
         // vertices         texture coords
-        -0.5, -0.5, 0.0,    0.0, 0.0,       // bottom left
-        -0.5, 0.5, 0.0,     0.0, 2.0,       // top left
-        0.5, 0.5, 0.0,      2.0, 2.0,       // top right
-        0.5, -0.5, 0.0,     2.0, 0.0,       // bottom right
+        -0.5, -0.5, 0.0,    0.49, 0.49,       // bottom left
+        -0.5, 0.5, 0.0,     0.49, 0.51,       // top left
+        0.5, 0.5, 0.0,      0.51, 0.51,       // top right
+        0.5, -0.5, 0.0,     0.51, 0.49,       // bottom right
     ];
 
     #[rustfmt::skip]
@@ -145,8 +145,8 @@ fn main() -> Result<(), String> {
         gl::BindTexture(gl::TEXTURE_2D, texture_wall);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -170,8 +170,8 @@ fn main() -> Result<(), String> {
         gl::BindTexture(gl::TEXTURE_2D, texture_face);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
