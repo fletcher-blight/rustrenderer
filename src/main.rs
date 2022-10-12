@@ -50,6 +50,16 @@ fn main() -> Result<(), String> {
         gl::CompileShader(shader_vertex);
         gl::CompileShader(shader_fragment);
 
+        let mut success: GLint = 0;
+        gl::GetShaderiv(shader_vertex, gl::COMPILE_STATUS, &mut success);
+        if success == 0 {
+            panic!("Vertex shader failed ");
+        }
+        gl::GetShaderiv(shader_fragment, gl::COMPILE_STATUS, &mut success);
+        if success == 0 {
+            panic!("Fragment shader failed ");
+        }
+
         program_id = gl::CreateProgram();
         gl::AttachShader(program_id, shader_vertex);
         gl::AttachShader(program_id, shader_fragment);
