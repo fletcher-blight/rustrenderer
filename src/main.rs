@@ -75,7 +75,7 @@ fn main() -> Result<(), String> {
     let vertices: [f32; 15] = [
         // vertices         texture coords
         -0.5, -0.5, 0.0,    0.0, 0.0,
-        -0.0, 0.5, 0.0,     0.5, 1.0,
+        0.0, 0.5, 0.0,      0.5, 1.0,
         0.5, -0.5, 0.0,     1.0, 0.0,
     ];
 
@@ -97,11 +97,35 @@ fn main() -> Result<(), String> {
             gl::STATIC_DRAW,
         );
 
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * std::mem::size_of::<f32>()) as i32,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(0);
+
+        gl::VertexAttribPointer(
+            1,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * std::mem::size_of::<f32>()) as i32,
+            (3 * std::mem::size_of::<f32>()) as *const std::os::raw::c_void,
+        );
+        gl::EnableVertexAttribArray(1);
+
         gl::GenTextures(1, &mut texture);
         gl::BindTexture(gl::TEXTURE_2D, texture);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_R, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as i32,
+        );
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
         gl::TexImage2D(
             gl::TEXTURE_2D,
@@ -121,26 +145,6 @@ fn main() -> Result<(), String> {
             texture_image.as_bytes().as_ptr() as *const std::os::raw::c_void,
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
-
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            false as u8,
-            (5 * std::mem::size_of::<f32>()) as i32,
-            std::ptr::null(),
-        );
-        gl::EnableVertexAttribArray(0);
-
-        gl::VertexAttribPointer(
-            1,
-            2,
-            gl::FLOAT,
-            false as u8,
-            (5 * std::mem::size_of::<f32>()) as i32,
-            3 as *const std::os::raw::c_void,
-        );
-        gl::EnableVertexAttribArray(1);
     }
     let vao = vao;
     let texture = texture;
