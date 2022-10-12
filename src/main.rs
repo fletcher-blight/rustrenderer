@@ -3,6 +3,7 @@ extern crate gl;
 use gl::types::*;
 use image::ImageFormat;
 use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use sdl2::video::GLProfile;
 use std::ffi::CString;
 
@@ -25,7 +26,7 @@ fn main() -> Result<(), String> {
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    let mut program_id: GLuint = 0;
+    let program_id: GLuint;
     unsafe {
         let source_vertex =
             CString::new(include_str!("triangle.vert")).map_err(error_to_string())?;
@@ -61,7 +62,6 @@ fn main() -> Result<(), String> {
         gl::AttachShader(program_id, shader_fragment);
         gl::LinkProgram(program_id);
     }
-    let program_id = program_id;
 
     let texture_wall_raw_data = include_bytes!("wall.jpg");
     let texture_wall_image =
@@ -78,10 +78,10 @@ fn main() -> Result<(), String> {
     #[rustfmt::skip]
     let vertices: [f32; 20] = [
         // vertices         texture coords
-        -0.5, -0.5, 0.0,    0.49, 0.49,       // bottom left
-        -0.5, 0.5, 0.0,     0.49, 0.51,       // top left
-        0.5, 0.5, 0.0,      0.51, 0.51,       // top right
-        0.5, -0.5, 0.0,     0.51, 0.49,       // bottom right
+        -0.5, -0.5, 0.0,    0.0, 0.0,       // bottom left
+        -0.5, 0.5, 0.0,     0.0, 1.0,       // top left
+        0.5, 0.5, 0.0,      1.0, 1.0,       // top right
+        0.5, -0.5, 0.0,     1.0, 0.0,       // bottom right
     ];
 
     #[rustfmt::skip]
@@ -195,6 +195,7 @@ fn main() -> Result<(), String> {
     let texture_wall = texture_wall;
     let texture_face = texture_face;
 
+    let mix_id: GLint;
     unsafe {
         gl::UseProgram(program_id);
 
@@ -215,13 +216,31 @@ fn main() -> Result<(), String> {
             panic!("Could not find `Texture2`");
         }
         gl::Uniform1i(loc, 1);
+
+        mix_id = gl::GetUniformLocation(
+            program_id,
+            String::from("MixPerc\0").as_ptr() as *const GLchar,
+        );
+        if mix_id < 0 {
+            panic!("Could not find `MixPerc`");
+        }
     }
 
+    let mut mix_perc: f32 = 0.3;
+    let mix_inc: f32 = 0.1;
     let mut event_pump = sdl.event_pump()?;
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    ..
+                } => mix_perc = num::clamp(mix_perc + mix_inc, 0.0, 1.0),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    ..
+                } => mix_perc = num::clamp(mix_perc - mix_inc, 0.0, 1.0),
                 _ => (),
             }
         }
@@ -236,6 +255,7 @@ fn main() -> Result<(), String> {
             gl::BindTexture(gl::TEXTURE_2D, texture_face);
 
             gl::UseProgram(program_id);
+            gl::Uniform1f(mix_id, mix_perc);
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
