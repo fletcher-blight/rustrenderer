@@ -79,9 +79,9 @@ fn main() -> Result<(), String> {
     let vertices: [f32; 20] = [
         // vertices         texture coords
         -0.5, -0.5, 0.0,    0.0, 0.0,       // bottom left
-        -0.5, 0.5, 0.0,     0.0, 1.0,       // top left
-        0.5, 0.5, 0.0,      1.0, 1.0,       // top right
-        0.5, -0.5, 0.0,     1.0, 0.0,       // bottom right
+        -0.5, 0.5, 0.0,     0.0, 2.0,       // top left
+        0.5, 0.5, 0.0,      2.0, 2.0,       // top right
+        0.5, -0.5, 0.0,     2.0, 0.0,       // bottom right
     ];
 
     #[rustfmt::skip]
