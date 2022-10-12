@@ -25,10 +25,6 @@ fn main() -> Result<(), String> {
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    unsafe {
-        gl::ClearColor(0.2, 0.5, 0.9, 1.0);
-    }
-
     let mut program_id: GLuint = 0;
     unsafe {
         let source_vertex =
@@ -80,11 +76,18 @@ fn main() -> Result<(), String> {
     let texture_face_image = texture_face_image;
 
     #[rustfmt::skip]
-    let vertices: [f32; 15] = [
+    let vertices: [f32; 20] = [
         // vertices         texture coords
-        -0.5, -0.5, 0.0,    0.0, 0.0,
-        0.0, 0.5, 0.0,      0.5, 1.0,
-        0.5, -0.5, 0.0,     1.0, 0.0,
+        -0.5, -0.5, 0.0,    0.0, 0.0,       // bottom left
+        -0.5, 0.5, 0.0,     0.0, 1.0,       // top left
+        0.5, 0.5, 0.0,      1.0, 1.0,       // top right
+        0.5, -0.5, 0.0,     1.0, 0.0,       // bottom right
+    ];
+
+    #[rustfmt::skip]
+    let indices: [u32; 6] = [
+        0, 1, 2,
+        2, 0, 3,
     ];
 
     let mut vao: GLuint = 0;
@@ -103,6 +106,18 @@ fn main() -> Result<(), String> {
                 .try_into()
                 .map_err(error_to_string())?,
             vertices.as_ptr() as *const std::os::raw::c_void,
+            gl::STATIC_DRAW,
+        );
+
+        let mut ebo: GLuint = 0;
+        gl::GenBuffers(1, &mut ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (indices.len() * std::mem::size_of::<u32>())
+                .try_into()
+                .map_err(error_to_string())?,
+            indices.as_ptr() as *const std::os::raw::c_void,
             gl::STATIC_DRAW,
         );
 
@@ -130,11 +145,7 @@ fn main() -> Result<(), String> {
         gl::BindTexture(gl::TEXTURE_2D, texture_wall);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::LINEAR_MIPMAP_LINEAR as i32,
-        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
         gl::TexImage2D(
             gl::TEXTURE_2D,
@@ -216,6 +227,7 @@ fn main() -> Result<(), String> {
         }
 
         unsafe {
+            gl::ClearColor(0.2, 0.5, 0.9, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::ActiveTexture(gl::TEXTURE0);
@@ -225,7 +237,7 @@ fn main() -> Result<(), String> {
 
             gl::UseProgram(program_id);
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
 
         window.gl_swap_window();
