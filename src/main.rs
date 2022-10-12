@@ -67,9 +67,17 @@ fn main() -> Result<(), String> {
     }
     let program_id = program_id;
 
-    let texture_raw_data = include_bytes!("wall.jpg");
-    let texture_image = image::load_from_memory_with_format(texture_raw_data, ImageFormat::Jpeg)
-        .map_err(error_to_string())?;
+    let texture_wall_raw_data = include_bytes!("wall.jpg");
+    let texture_wall_image =
+        image::load_from_memory_with_format(texture_wall_raw_data, ImageFormat::Jpeg)
+            .map_err(error_to_string())?;
+
+    let texture_face_raw_data = include_bytes!("face.png");
+    let mut texture_face_image =
+        image::load_from_memory_with_format(texture_face_raw_data, ImageFormat::Png)
+            .map_err(error_to_string())?;
+    image::imageops::flip_vertical_in_place(&mut texture_face_image);
+    let texture_face_image = texture_face_image;
 
     #[rustfmt::skip]
     let vertices: [f32; 15] = [
@@ -80,7 +88,8 @@ fn main() -> Result<(), String> {
     ];
 
     let mut vao: GLuint = 0;
-    let mut texture: GLuint = 0;
+    let mut texture_wall: GLuint = 0;
+    let mut texture_face: GLuint = 0;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
@@ -117,8 +126,8 @@ fn main() -> Result<(), String> {
         );
         gl::EnableVertexAttribArray(1);
 
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_2D, texture);
+        gl::GenTextures(1, &mut texture_wall);
+        gl::BindTexture(gl::TEXTURE_2D, texture_wall);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
         gl::TexParameteri(
@@ -131,23 +140,71 @@ fn main() -> Result<(), String> {
             gl::TEXTURE_2D,
             0,
             gl::RGB as i32,
-            texture_image
+            texture_wall_image
                 .width()
                 .try_into()
                 .map_err(error_to_string())?,
-            texture_image
+            texture_wall_image
                 .height()
                 .try_into()
                 .map_err(error_to_string())?,
             0,
             gl::RGB,
             gl::UNSIGNED_BYTE,
-            texture_image.as_bytes().as_ptr() as *const std::os::raw::c_void,
+            texture_wall_image.as_bytes().as_ptr() as *const std::os::raw::c_void,
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        gl::GenTextures(1, &mut texture_face);
+        gl::BindTexture(gl::TEXTURE_2D, texture_face);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGBA as i32,
+            texture_face_image
+                .width()
+                .try_into()
+                .map_err(error_to_string())?,
+            texture_face_image
+                .height()
+                .try_into()
+                .map_err(error_to_string())?,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            texture_face_image.as_bytes().as_ptr() as *const std::os::raw::c_void,
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }
     let vao = vao;
-    let texture = texture;
+    let texture_wall = texture_wall;
+    let texture_face = texture_face;
+
+    unsafe {
+        gl::UseProgram(program_id);
+
+        let loc = gl::GetUniformLocation(
+            program_id,
+            String::from("Texture1\0").as_ptr() as *const GLchar,
+        );
+        if loc < 0 {
+            panic!("Could not find `Texture1`");
+        }
+        gl::Uniform1i(loc, 0);
+
+        let loc = gl::GetUniformLocation(
+            program_id,
+            String::from("Texture2\0").as_ptr() as *const GLchar,
+        );
+        if loc < 0 {
+            panic!("Could not find `Texture2`");
+        }
+        gl::Uniform1i(loc, 1);
+    }
 
     let mut event_pump = sdl.event_pump()?;
     'main: loop {
@@ -160,11 +217,15 @@ fn main() -> Result<(), String> {
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            gl::BindTexture(gl::TEXTURE_2D, texture);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture_wall);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, texture_face);
+
             gl::UseProgram(program_id);
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            // gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());
         }
 
         window.gl_swap_window();
