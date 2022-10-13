@@ -63,7 +63,7 @@ fn main() -> Result<(), String> {
         gl::LinkProgram(program_id);
     }
 
-    let texture_wall_raw_data = include_bytes!("wall.jpg");
+    let texture_wall_raw_data = include_bytes!("container.jpg");
     let texture_wall_image =
         image::load_from_memory_with_format(texture_wall_raw_data, ImageFormat::Jpeg)
             .map_err(error_to_string())?;
@@ -195,39 +195,35 @@ fn main() -> Result<(), String> {
     let texture_wall = texture_wall;
     let texture_face = texture_face;
 
-    let mix_id: GLint;
+    let mix_id: GLint = find_uniform(program_id, "MixPerc")?;
+    let model_id: GLint = find_uniform(program_id, "model")?;
+    let view_id: GLint = find_uniform(program_id, "view")?;
+    let projection_id: GLint = find_uniform(program_id, "projection")?;
+
     unsafe {
         gl::UseProgram(program_id);
-
-        let loc = gl::GetUniformLocation(
-            program_id,
-            String::from("Texture1\0").as_ptr() as *const GLchar,
-        );
-        if loc < 0 {
-            panic!("Could not find `Texture1`");
-        }
+        let loc = find_uniform(program_id, "Texture1")?;
         gl::Uniform1i(loc, 0);
-
-        let loc = gl::GetUniformLocation(
-            program_id,
-            String::from("Texture2\0").as_ptr() as *const GLchar,
-        );
-        if loc < 0 {
-            panic!("Could not find `Texture2`");
-        }
+        let loc = find_uniform(program_id, "Texture2")?;
         gl::Uniform1i(loc, 1);
-
-        mix_id = gl::GetUniformLocation(
-            program_id,
-            String::from("MixPerc\0").as_ptr() as *const GLchar,
-        );
-        if mix_id < 0 {
-            panic!("Could not find `MixPerc`");
-        }
     }
 
     let mut mix_perc: f32 = 0.3;
     let mix_inc: f32 = 0.1;
+
+    let model = nalgebra_glm::rotate(
+        &num::one(),
+        num::Float::to_radians(-55.0),
+        &nalgebra_glm::vec3(1.0, 0.0, 0.0),
+    );
+    let view = nalgebra_glm::translate(&num::one(), &nalgebra_glm::vec3(0.0, 0.0, -3.0));
+    let projection = nalgebra_glm::perspective(
+        window.size().0 as f32 / window.size().1 as f32,
+        num::Float::to_radians(45.0),
+        0.1,
+        100.0,
+    );
+
     let mut event_pump = sdl.event_pump()?;
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -255,7 +251,27 @@ fn main() -> Result<(), String> {
             gl::BindTexture(gl::TEXTURE_2D, texture_face);
 
             gl::UseProgram(program_id);
+
+            gl::UniformMatrix4fv(
+                model_id,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&model).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                view_id,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&view).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                projection_id,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&projection).as_ptr(),
+            );
             gl::Uniform1f(mix_id, mix_perc);
+
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
@@ -271,4 +287,13 @@ where
     E: std::fmt::Display,
 {
     |e: E| e.to_string()
+}
+
+fn find_uniform(program_id: GLuint, name: &str) -> Result<GLint, String> {
+    let name = CString::new(name).map_err(error_to_string())?;
+    let id = unsafe { gl::GetUniformLocation(program_id, name.as_ptr() as *const GLchar) };
+    if id < 0 {
+        return Err(String::from("Could not find `MixPerc`"));
+    }
+    Ok(id)
 }
