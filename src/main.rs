@@ -25,6 +25,9 @@ fn main() -> Result<(), String> {
     let _gl_context = window.gl_create_context()?;
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
 
     let program_id: GLuint;
     unsafe {
@@ -76,18 +79,49 @@ fn main() -> Result<(), String> {
     let texture_face_image = texture_face_image;
 
     #[rustfmt::skip]
-    let vertices: [f32; 20] = [
+    let vertices: [f32; 180] = [
         // vertices         texture coords
-        -0.5, -0.5, 0.0,    0.0, 0.0,       // bottom left
-        -0.5, 0.5, 0.0,     0.0, 1.0,       // top left
-        0.5, 0.5, 0.0,      1.0, 1.0,       // top right
-        0.5, -0.5, 0.0,     1.0, 0.0,       // bottom right
-    ];
+        -0.5, -0.5, -0.5,  0.0, 0.0,
+        0.5, -0.5, -0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 0.0,
 
-    #[rustfmt::skip]
-    let indices: [u32; 6] = [
-        0, 1, 2,
-        2, 0, 3,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0,
     ];
 
     let mut vao: GLuint = 0;
@@ -106,18 +140,6 @@ fn main() -> Result<(), String> {
                 .try_into()
                 .map_err(error_to_string())?,
             vertices.as_ptr() as *const std::os::raw::c_void,
-            gl::STATIC_DRAW,
-        );
-
-        let mut ebo: GLuint = 0;
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (indices.len() * std::mem::size_of::<u32>())
-                .try_into()
-                .map_err(error_to_string())?,
-            indices.as_ptr() as *const std::os::raw::c_void,
             gl::STATIC_DRAW,
         );
 
@@ -210,8 +232,10 @@ fn main() -> Result<(), String> {
 
     let mut mix_perc: f32 = 0.3;
     let mix_inc: f32 = 0.1;
+    let cube_rotate_inc: f32 = 5.0;
+    let cube_rotate_axis = nalgebra_glm::vec3(0.5, 1.0, 0.0);
 
-    let model = nalgebra_glm::rotate(
+    let mut model = nalgebra_glm::rotate(
         &num::one(),
         num::Float::to_radians(-55.0),
         &nalgebra_glm::vec3(1.0, 0.0, 0.0),
@@ -237,13 +261,33 @@ fn main() -> Result<(), String> {
                     keycode: Some(Keycode::Down),
                     ..
                 } => mix_perc = num::clamp(mix_perc - mix_inc, 0.0, 1.0),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Right),
+                    ..
+                } => {
+                    model = nalgebra_glm::rotate(
+                        &model,
+                        num::Float::to_radians(cube_rotate_inc),
+                        &cube_rotate_axis,
+                    )
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Left),
+                    ..
+                } => {
+                    model = nalgebra_glm::rotate(
+                        &model,
+                        num::Float::to_radians(-cube_rotate_inc),
+                        &cube_rotate_axis,
+                    )
+                }
                 _ => (),
             }
         }
 
         unsafe {
             gl::ClearColor(0.2, 0.5, 0.9, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, texture_wall);
@@ -273,7 +317,7 @@ fn main() -> Result<(), String> {
             gl::Uniform1f(mix_id, mix_perc);
 
             gl::BindVertexArray(vao);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         window.gl_swap_window();
