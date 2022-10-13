@@ -74,8 +74,8 @@ fn main() -> Result<(), String> {
 
     let program_cube =
         program_id_from_shaders(&[include_str!("cube.vert"), include_str!("cube.frag")])?;
-    // let program_light =
-    //     program_id_from_shaders(&[include_str!("light.vert"), include_str!("light.frag")])?;
+    let program_light =
+        program_id_from_shaders(&[include_str!("light.vert"), include_str!("light.frag")])?;
 
     let mut vao_cube: GLuint = 0;
     let mut vao_light: GLuint = 0;
@@ -114,25 +114,35 @@ fn main() -> Result<(), String> {
     unsafe {
         gl::UseProgram(program_cube);
     }
-    // let loc_cube_model: GLuint = find_uniform(program_cube, "Model")?;
-    // let loc_cube_view: GLuint = find_uniform(program_cube, "View")?;
-    // let loc_cube_projection: GLuint = find_uniform(program_cube, "Projection")?;
+    let loc_cube_model: GLuint = find_uniform(program_cube, "Model")?;
+    let loc_cube_view: GLuint = find_uniform(program_cube, "View")?;
+    let loc_cube_projection: GLuint = find_uniform(program_cube, "Projection")?;
     let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
     let loc_cube_object_colour: GLuint = find_uniform(program_cube, "ObjectColour")?;
 
-    // unsafe {
-    //     gl::UseProgram(program_light);
-    // }
-    // let loc_light_model: GLuint = find_uniform(program_light, "Model")?;
-    // let loc_light_view: GLuint = find_uniform(program_light, "View")?;
-    // let loc_light_projection: GLuint = find_uniform(program_light, "Projection")?;
+    unsafe {
+        gl::UseProgram(program_light);
+    }
+    let loc_light_model: GLuint = find_uniform(program_light, "Model")?;
+    let loc_light_view: GLuint = find_uniform(program_light, "View")?;
+    let loc_light_projection: GLuint = find_uniform(program_light, "Projection")?;
 
-    // let projection = nalgebra_glm::perspective(
-    //     window.size().0 as f32 / window.size().1 as f32,
-    //     num::Float::to_radians(45.0),
-    //     0.1,
-    //     100.0,
-    // );
+    let projection = nalgebra_glm::perspective(
+        window.size().0 as f32 / window.size().1 as f32,
+        num::Float::to_radians(45.0),
+        0.1,
+        100.0,
+    );
+
+    let camera_pos = nalgebra_glm::vec3(5.0, 1.5, 5.0);
+
+    let view = nalgebra_glm::look_at(
+        &camera_pos,
+        &nalgebra_glm::vec3(0.0, 0.0, 0.0),
+        &nalgebra_glm::vec3(0.0, 1.0, 0.0),
+    );
+
+    let light_pos = nalgebra_glm::vec3(1.2, 1.2, -1.0);
 
     let mut event_pump = sdl.event_pump()?;
     'main: loop {
@@ -144,51 +154,69 @@ fn main() -> Result<(), String> {
         }
 
         unsafe {
-            gl::ClearColor(0.2, 0.5, 0.9, 1.0);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
-            // let model: nalgebra_glm::Mat4 = nalgebra_glm::one();
 
             gl::UseProgram(program_cube);
 
-            // gl::UniformMatrix4fv(
-            //     loc_cube_model as i32,
-            //     0,
-            //     gl::FALSE,
-            //     nalgebra_glm::value_ptr(&model).as_ptr(),
-            // );
-            // gl::UniformMatrix4fv(
-            //     loc_cube_view as i32,
-            //     0,
-            //     gl::FALSE,
-            //     nalgebra_glm::value_ptr(&nalgebra_glm::look_at(
-            //         &nalgebra_glm::vec3(0.0, 0.0, 3.0),
-            //         &nalgebra_glm::vec3(0.0, 0.0, 0.0),
-            //         &nalgebra_glm::vec3(0.0, 1.0, 0.0),
-            //     ))
-            //     .as_ptr(),
-            // );
-            // gl::UniformMatrix4fv(
-            //     loc_cube_projection as i32,
-            //     0,
-            //     gl::FALSE,
-            //     nalgebra_glm::value_ptr(&projection).as_ptr(),
-            // );
+            let model = nalgebra_glm::translate(&num::one(), &nalgebra_glm::vec3(0.0, 0.0, 0.0));
+
+            gl::UniformMatrix4fv(
+                loc_cube_model as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&model).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                loc_cube_view as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&view).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                loc_cube_projection as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&projection).as_ptr(),
+            );
             gl::Uniform3f(loc_cube_light_colour as i32, 1.0, 1.0, 1.0);
             gl::Uniform3f(loc_cube_object_colour as i32, 1.0, 0.5, 0.31);
 
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
-            // gl::UseProgram(program_light);
-            // gl::BindVertexArray(vao_light);
-            // gl::UniformMatrix4fv(
-            //     loc_light_projection as i32,
-            //     0,
-            //     gl::FALSE,
-            //     nalgebra_glm::value_ptr(&projection).as_ptr(),
-            // );
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            // =====================
+
+            gl::UseProgram(program_light);
+
+            let model = nalgebra_glm::scale(
+                &nalgebra_glm::translate(&num::one(), &light_pos),
+                &nalgebra_glm::vec3(0.2, 0.2, 0.2),
+            );
+
+            gl::UniformMatrix4fv(
+                loc_light_model as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&model).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                loc_light_view as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&view).as_ptr(),
+            );
+            gl::UniformMatrix4fv(
+                loc_light_projection as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&projection).as_ptr(),
+            );
+
+            gl::BindVertexArray(vao_light);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+            assert_eq!(gl::GetError(), 0);
         }
 
         window.gl_swap_window();
@@ -231,7 +259,7 @@ fn compile_shader(source: &str, kind: GLuint) -> Result<GLuint, String> {
         return Err(format!("Failed to compile {}", source));
     }
 
-    Ok((id))
+    Ok(id)
 }
 
 fn program_id_from_shaders(sources: &[&str; 2]) -> Result<GLuint, String> {
