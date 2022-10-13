@@ -248,6 +248,19 @@ fn main() -> Result<(), String> {
         100.0,
     );
 
+    let cube_positions = [
+        nalgebra_glm::vec3(0.0, 0.0, 0.0),
+        nalgebra_glm::vec3(2.0, 5.0, -15.0),
+        nalgebra_glm::vec3(-1.5, -2.2, -2.5),
+        nalgebra_glm::vec3(-3.8, -2.0, -12.3),
+        nalgebra_glm::vec3(2.4, -0.4, -3.5),
+        nalgebra_glm::vec3(-1.7, 3.0, -7.5),
+        nalgebra_glm::vec3(1.3, -2.0, -2.5),
+        nalgebra_glm::vec3(1.5, 2.0, -2.5),
+        nalgebra_glm::vec3(1.5, 0.2, -1.5),
+        nalgebra_glm::vec3(-1.3, 1.0, -1.5),
+    ];
+
     let mut event_pump = sdl.event_pump()?;
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -297,12 +310,6 @@ fn main() -> Result<(), String> {
             gl::UseProgram(program_id);
 
             gl::UniformMatrix4fv(
-                model_id,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&model).as_ptr(),
-            );
-            gl::UniformMatrix4fv(
                 view_id,
                 1,
                 gl::FALSE,
@@ -317,7 +324,21 @@ fn main() -> Result<(), String> {
             gl::Uniform1f(mix_id, mix_perc);
 
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            for (i, pos) in cube_positions.iter().enumerate() {
+                let this_model = nalgebra_glm::translate(&num::one(), &pos);
+                let this_model = nalgebra_glm::rotate(
+                    &this_model,
+                    num::Float::to_radians(20.0 * i as f32),
+                    &nalgebra_glm::vec3(1.0, 0.3, 0.5),
+                ) * model;
+                gl::UniformMatrix4fv(
+                    model_id,
+                    1,
+                    gl::FALSE,
+                    nalgebra_glm::value_ptr(&this_model).as_ptr(),
+                );
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         window.gl_swap_window();
