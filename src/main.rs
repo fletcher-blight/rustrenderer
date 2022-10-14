@@ -28,48 +28,48 @@ fn main() -> Result<(), String> {
     }
 
     #[rustfmt::skip]
-    let vertices_cube: [f32; 108] = [
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5,  0.5, -0.5,
-        0.5,  0.5, -0.5,
-        -0.5,  0.5, -0.5,
-        -0.5, -0.5, -0.5,
+    let vertices_cube: [f32; 216] = [
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-        -0.5, -0.5,  0.5,
-        0.5, -0.5,  0.5,
-        0.5,  0.5,  0.5,
-        0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5, -0.5,  0.5,
+        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+        0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+        0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+        0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+        -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
 
-        -0.5,  0.5,  0.5,
-        -0.5,  0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5,  0.5,
-        -0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
 
-        0.5,  0.5,  0.5,
-        0.5,  0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, -0.5,  0.5,
-        0.5,  0.5,  0.5,
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+        0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, -0.5,  0.5,
-        0.5, -0.5,  0.5,
-        -0.5, -0.5,  0.5,
-        -0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
 
-        -0.5,  0.5, -0.5,
-        0.5,  0.5, -0.5,
-        0.5,  0.5,  0.5,
-        0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
     ];
 
     let program_cube =
@@ -96,19 +96,38 @@ fn main() -> Result<(), String> {
         gl::GenVertexArrays(1, &mut vao_cube);
         gl::GenVertexArrays(1, &mut vao_light);
 
-        for vao in [vao_cube, vao_light] {
-            gl::BindVertexArray(vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (3 * std::mem::size_of::<f32>()) as i32,
-                std::ptr::null(),
-            );
-            gl::EnableVertexAttribArray(0);
-        }
+        gl::BindVertexArray(vao_cube);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as i32,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as i32,
+            (3 * std::mem::size_of::<f32>()) as *const std::os::raw::c_void,
+        );
+        gl::EnableVertexAttribArray(1);
+
+        gl::BindVertexArray(vao_light);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as i32,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(0);
     }
 
     unsafe {
@@ -117,8 +136,9 @@ fn main() -> Result<(), String> {
     let loc_cube_model: GLuint = find_uniform(program_cube, "Model")?;
     let loc_cube_view: GLuint = find_uniform(program_cube, "View")?;
     let loc_cube_projection: GLuint = find_uniform(program_cube, "Projection")?;
-    let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
     let loc_cube_object_colour: GLuint = find_uniform(program_cube, "ObjectColour")?;
+    let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
+    let loc_cube_light_pos: GLuint = find_uniform(program_cube, "LightPos")?;
 
     unsafe {
         gl::UseProgram(program_light);
@@ -179,8 +199,14 @@ fn main() -> Result<(), String> {
                 gl::FALSE,
                 nalgebra_glm::value_ptr(&projection).as_ptr(),
             );
-            gl::Uniform3f(loc_cube_light_colour as i32, 1.0, 1.0, 1.0);
             gl::Uniform3f(loc_cube_object_colour as i32, 1.0, 0.5, 0.31);
+            gl::Uniform3f(loc_cube_light_colour as i32, 1.0, 1.0, 1.0);
+            gl::Uniform3f(
+                loc_cube_light_pos as i32,
+                *light_pos.index(0),
+                *light_pos.index(1),
+                *light_pos.index(2),
+            );
 
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
