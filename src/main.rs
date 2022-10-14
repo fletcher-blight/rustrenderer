@@ -139,6 +139,7 @@ fn main() -> Result<(), String> {
     let loc_cube_object_colour: GLuint = find_uniform(program_cube, "ObjectColour")?;
     let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
     let loc_cube_light_pos: GLuint = find_uniform(program_cube, "LightPos")?;
+    let loc_cube_view_pos: GLuint = find_uniform(program_cube, "ViewPos")?;
 
     unsafe {
         gl::UseProgram(program_light);
@@ -162,9 +163,8 @@ fn main() -> Result<(), String> {
         &nalgebra_glm::vec3(0.0, 1.0, 0.0),
     );
 
-    let light_pos = nalgebra_glm::vec3(1.2, 1.2, -1.0);
-
     let mut event_pump = sdl.event_pump()?;
+    let timer = sdl.timer()?;
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -172,6 +172,13 @@ fn main() -> Result<(), String> {
                 _ => (),
             }
         }
+
+        let seconds = timer.ticks() as f32 / 1000.0;
+        let light_pos = nalgebra_glm::rotate_vec3(
+            &nalgebra_glm::vec3(1.2, 1.2, -1.0),
+            seconds,
+            &nalgebra_glm::vec3(seconds, seconds * 5.0, seconds * seconds),
+        );
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
@@ -206,6 +213,12 @@ fn main() -> Result<(), String> {
                 *light_pos.index(0),
                 *light_pos.index(1),
                 *light_pos.index(2),
+            );
+            gl::Uniform3f(
+                loc_cube_view_pos as i32,
+                *camera_pos.index(0),
+                *camera_pos.index(1),
+                *camera_pos.index(2),
             );
 
             gl::BindVertexArray(vao_cube);
