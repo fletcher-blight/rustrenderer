@@ -43,9 +43,16 @@ impl Shader {
     }
 }
 
+impl Drop for Shader {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.id);
+        }
+    }
+}
+
 pub fn compile_from_sources(vertex_source: &str, fragment_source: &str) -> Result<Shader, String> {
-    let id = program_id_from_shaders(&vertex_source, &fragment_source)?;
-    Ok(Shader { id })
+    program_id_from_shaders(&vertex_source, &fragment_source)
 }
 
 fn find_uniform(program_id: GLuint, name: &str) -> Result<GLuint, String> {
@@ -57,48 +64,83 @@ fn find_uniform(program_id: GLuint, name: &str) -> Result<GLuint, String> {
     Ok(id as GLuint)
 }
 
-fn compile_shader(source: &str, kind: GLuint) -> Result<GLuint, String> {
+struct ShaderComponent {
+    id: GLuint,
+}
+
+impl Drop for ShaderComponent {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteShader(self.id);
+        }
+    }
+}
+
+struct ShaderLink {
+    program_id: GLuint,
+    component_id: GLuint,
+}
+
+impl ShaderLink {
+    fn create(program_id: GLuint, component_id: GLuint) -> Self {
+        unsafe {
+            gl::AttachShader(program_id, component_id);
+        }
+        ShaderLink {
+            program_id,
+            component_id,
+        }
+    }
+}
+
+impl Drop for ShaderLink {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DetachShader(self.program_id, self.component_id);
+        }
+    }
+}
+
+fn compile_shader(source: &str, kind: GLuint) -> Result<ShaderComponent, String> {
     let cstr = CString::new(source).map_err(error_to_string())?;
 
-    let id: GLuint;
-    unsafe {
-        id = gl::CreateShader(kind);
+    let shader_component = unsafe {
+        let id = gl::CreateShader(kind);
         gl::ShaderSource(id, 1, &cstr.as_ptr(), std::ptr::null());
         gl::CompileShader(id);
+        ShaderComponent { id }
     };
 
     let mut success: GLint = 0;
     unsafe {
-        gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
+        gl::GetShaderiv(shader_component.id, gl::COMPILE_STATUS, &mut success);
     }
     if success == 0 {
         return Err(format!("Failed to compile {}", source));
     }
 
-    Ok(id)
+    Ok(shader_component)
 }
 
-fn program_id_from_shaders(vertex_source: &str, fragment_source: &str) -> Result<GLuint, String> {
-    let shaders = [
-        compile_shader(&vertex_source, gl::VERTEX_SHADER)?,
-        compile_shader(&fragment_source, gl::FRAGMENT_SHADER)?,
-    ];
+fn program_id_from_shaders(vertex_source: &str, fragment_source: &str) -> Result<Shader, String> {
+    let shader = Shader {
+        id: unsafe { gl::CreateProgram() },
+    };
 
-    let id = unsafe { gl::CreateProgram() };
-    for shader in &shaders {
-        unsafe {
-            gl::AttachShader(id, *shader);
-        }
-    }
+    let vertex_component = compile_shader(&vertex_source, gl::VERTEX_SHADER)?;
+    let fragment_component = compile_shader(&fragment_source, gl::FRAGMENT_SHADER)?;
+
+    let _vertex_link = ShaderLink::create(shader.id, vertex_component.id);
+    let _fragment_link = ShaderLink::create(shader.id, fragment_component.id);
 
     let mut success: GLint = 0;
     unsafe {
-        gl::LinkProgram(id);
-        gl::GetProgramiv(id, gl::LINK_STATUS, &mut success);
+        gl::LinkProgram(shader.id);
+        gl::GetProgramiv(shader.id, gl::LINK_STATUS, &mut success);
     }
     if success == 0 {
         let mut len: GLint = 0;
-        unsafe { gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len) };
+        unsafe { gl::GetProgramiv(shader.id, gl::INFO_LOG_LENGTH, &mut len) };
         let error = CString::new(
             std::iter::repeat(' ')
                 .take(len as usize)
@@ -106,7 +148,12 @@ fn program_id_from_shaders(vertex_source: &str, fragment_source: &str) -> Result
         )
         .map_err(error_to_string())?;
         unsafe {
-            gl::GetProgramInfoLog(id, len, std::ptr::null_mut(), error.as_ptr() as *mut GLchar)
+            gl::GetProgramInfoLog(
+                shader.id,
+                len,
+                std::ptr::null_mut(),
+                error.as_ptr() as *mut GLchar,
+            )
         };
         return Err(format!(
             "Failed to link program: {}",
@@ -114,12 +161,7 @@ fn program_id_from_shaders(vertex_source: &str, fragment_source: &str) -> Result
         ));
     }
 
-    for shader in &shaders {
-        unsafe {
-            gl::DetachShader(id, *shader);
-        }
-    }
-    Ok(id)
+    Ok(shader)
 }
 
 fn error_to_string<E>() -> fn(E) -> String

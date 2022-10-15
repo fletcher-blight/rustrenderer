@@ -83,8 +83,8 @@ fn main() -> Result<(), String> {
 
     let mut vao_cube: GLuint = 0;
     let mut vao_light: GLuint = 0;
+    let mut vbo: GLuint = 0;
     unsafe {
-        let mut vbo: GLuint = 0;
         gl::GenVertexArrays(1, &mut vao_cube);
         gl::GenBuffers(1, &mut vbo);
 
@@ -131,6 +131,9 @@ fn main() -> Result<(), String> {
         );
         gl::EnableVertexAttribArray(0);
     }
+    let vao_cube = vao_cube;
+    let vao_light = vao_light;
+    let vbo = vbo;
 
     let projection = nalgebra_glm::perspective(
         window.size().0 as f32 / window.size().1 as f32,
@@ -254,6 +257,12 @@ fn main() -> Result<(), String> {
         }
 
         window.gl_swap_window();
+    }
+
+    unsafe {
+        gl::DeleteVertexArrays(1, &vao_cube as *const GLuint);
+        gl::DeleteVertexArrays(1, &vao_light as *const GLuint);
+        gl::DeleteBuffers(1, &vbo as *const GLuint);
     }
 
     Ok(())
