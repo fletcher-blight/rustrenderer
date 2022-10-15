@@ -213,6 +213,17 @@ fn main() -> Result<(), String> {
             seconds,
             &nalgebra_glm::vec3(0.0, 1.0, 0.0),
         );
+        let light_colour = nalgebra_glm::vec3(
+            (2.0 * seconds).sin(),
+            (0.7 * seconds).sin(),
+            (1.3 * seconds).sin(),
+        );
+        let diffuse_light = 0.5 * light_colour;
+        let ambient_light = 0.2 * diffuse_light;
+
+        let model_cube =
+            nalgebra_glm::rotate(&num::one(), seconds, &nalgebra_glm::vec3(1.0, 1.0, 1.0));
+        let model_light = nalgebra_glm::translate(&num::one(), &light_pos);
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
@@ -220,32 +231,29 @@ fn main() -> Result<(), String> {
 
             shader_cube.enable();
 
-            let model =
-                nalgebra_glm::rotate(&num::one(), seconds, &nalgebra_glm::vec3(1.0, 1.0, 1.0));
-
-            shader_cube.set_mat4("uModel", &model)?;
+            shader_cube.set_mat4("uModel", &model_cube)?;
             shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
             shader_cube.set_mat4("uProjection", &projection)?;
             shader_cube.set_vec3("uViewPos", &camera.get_position())?;
             shader_cube.set_vec3("uLight.position", &light_pos)?;
-            shader_cube.set_vec3("uLight.ambient", &nalgebra_glm::vec3(0.2, 0.2, 0.2))?;
-            shader_cube.set_vec3("uLight.diffuse", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
+            shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
+            shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
             shader_cube.set_vec3("uMaterial.ambient", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
             shader_cube.set_vec3("uMaterial.diffuse", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
             shader_cube.set_vec3("uMaterial.specular", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
             shader_cube.set_float("uMaterial.shininess", 32.0)?;
 
-            let model = nalgebra_glm::translate(&num::one(), &light_pos);
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // =====================
 
             shader_light.enable();
-            shader_light.set_mat4("uModel", &model)?;
+            shader_light.set_mat4("uModel", &model_light)?;
             shader_light.set_mat4("uView", &camera.get_view_matrix())?;
             shader_light.set_mat4("uProjection", &projection)?;
+            shader_light.set_vec3("uLightColour", &light_colour)?;
 
             gl::BindVertexArray(vao_light);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
