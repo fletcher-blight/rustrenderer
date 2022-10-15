@@ -81,7 +81,9 @@ fn main() -> Result<(), String> {
     let mut vao_light: GLuint = 0;
     unsafe {
         let mut vbo: GLuint = 0;
+        gl::GenVertexArrays(1, &mut vao_cube);
         gl::GenBuffers(1, &mut vbo);
+
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
@@ -91,13 +93,8 @@ fn main() -> Result<(), String> {
             vertices_cube.as_ptr() as *const std::os::raw::c_void,
             gl::STATIC_DRAW,
         );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-
-        gl::GenVertexArrays(1, &mut vao_cube);
-        gl::GenVertexArrays(1, &mut vao_light);
 
         gl::BindVertexArray(vao_cube);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::VertexAttribPointer(
             0,
             3,
@@ -117,6 +114,7 @@ fn main() -> Result<(), String> {
         );
         gl::EnableVertexAttribArray(1);
 
+        gl::GenVertexArrays(1, &mut vao_light);
         gl::BindVertexArray(vao_light);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::VertexAttribPointer(
@@ -138,7 +136,8 @@ fn main() -> Result<(), String> {
     let loc_cube_projection: GLuint = find_uniform(program_cube, "Projection")?;
     let loc_cube_object_colour: GLuint = find_uniform(program_cube, "ObjectColour")?;
     let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
-    let loc_cube_light_pos: GLuint = find_uniform(program_cube, "LightPos")?;
+    let loc_cube_light_model: GLuint = find_uniform(program_cube, "LightModel")?;
+    let loc_cube_intensity: GLuint = find_uniform(program_cube, "Intensity")?;
     let loc_cube_view_pos: GLuint = find_uniform(program_cube, "ViewPos")?;
 
     unsafe {
@@ -174,10 +173,12 @@ fn main() -> Result<(), String> {
         }
 
         let seconds = timer.ticks() as f32 / 1000.0;
+        // let light_pos = nalgebra_glm::vec3(2.5, 2.5, 0.0);
+        let mag = 2.5 + (seconds / 4.0).sin();
         let light_pos = nalgebra_glm::rotate_vec3(
-            &nalgebra_glm::vec3(1.2, 1.2, -1.0),
+            &nalgebra_glm::vec3(mag, 2.0 * (mag - 2.5), mag),
             seconds,
-            &nalgebra_glm::vec3(seconds, seconds * 5.0, seconds * seconds),
+            &nalgebra_glm::vec3(0.0, 1.0, 0.0),
         );
 
         unsafe {
@@ -208,11 +209,19 @@ fn main() -> Result<(), String> {
             );
             gl::Uniform3f(loc_cube_object_colour as i32, 1.0, 0.5, 0.31);
             gl::Uniform3f(loc_cube_light_colour as i32, 1.0, 1.0, 1.0);
-            gl::Uniform3f(
-                loc_cube_light_pos as i32,
-                *light_pos.index(0),
-                *light_pos.index(1),
-                *light_pos.index(2),
+
+            let light_scale = 0.3 * (seconds / 3.0).sin() + 0.4;
+            gl::Uniform1f(loc_cube_intensity as i32, light_scale);
+            let model = nalgebra_glm::scale(
+                &nalgebra_glm::translate(&num::one(), &light_pos),
+                &nalgebra_glm::vec3(light_scale, light_scale, light_scale),
+            );
+
+            gl::UniformMatrix4fv(
+                loc_cube_light_model as i32,
+                1,
+                gl::FALSE,
+                nalgebra_glm::value_ptr(&model).as_ptr(),
             );
             gl::Uniform3f(
                 loc_cube_view_pos as i32,
@@ -227,11 +236,6 @@ fn main() -> Result<(), String> {
             // =====================
 
             gl::UseProgram(program_light);
-
-            let model = nalgebra_glm::scale(
-                &nalgebra_glm::translate(&num::one(), &light_pos),
-                &nalgebra_glm::vec3(0.2, 0.2, 0.2),
-            );
 
             gl::UniformMatrix4fv(
                 loc_light_model as i32,
