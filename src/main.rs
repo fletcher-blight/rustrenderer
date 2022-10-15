@@ -141,7 +141,7 @@ fn main() -> Result<(), String> {
 
     let mut camera = camera::start_from_world_pos(nalgebra_glm::vec3(0.0, 0.0, 3.0));
     let camera_speed: f32 = 10.0;
-    let camera_sensitivity: f32 = 0.5;
+    let camera_sensitivity: f32 = 0.2;
 
     let mut current_movement: [Option<Direction>; 6] = [None, None, None, None, None, None];
     let mut frames: u64 = 0;
@@ -172,9 +172,6 @@ fn main() -> Result<(), String> {
                     Some(Keycode::LAlt) => current_movement[5] = None,
                     _ => (),
                 },
-                Event::MouseMotion { xrel, yrel, .. } => {
-                    camera.update_orientation(xrel as f32, -yrel as f32, camera_sensitivity);
-                }
                 _ => (),
             }
         }
@@ -192,6 +189,13 @@ fn main() -> Result<(), String> {
             last_second = seconds as u32;
             println!("FPS: {}", frames as f32 / seconds);
         }
+
+        let mouse_state = sdl2::mouse::RelativeMouseState::new(&event_pump);
+        camera.update_orientation(
+            mouse_state.x() as f32,
+            -mouse_state.y() as f32,
+            camera_sensitivity,
+        );
 
         for movement in &current_movement {
             match movement {
