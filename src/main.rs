@@ -1,9 +1,9 @@
 extern crate gl;
+mod shader;
 
 use gl::types::*;
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
-use std::ffi::CString;
 
 fn main() -> Result<(), String> {
     let sdl = sdl2::init()?;
@@ -72,10 +72,10 @@ fn main() -> Result<(), String> {
         -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
     ];
 
-    let program_cube =
-        program_id_from_shaders(&[include_str!("cube.vert"), include_str!("cube.frag")])?;
-    let program_light =
-        program_id_from_shaders(&[include_str!("light.vert"), include_str!("light.frag")])?;
+    let shader_cube =
+        shader::compile_from_sources(include_str!("cube.vert"), include_str!("cube.frag"))?;
+    let shader_light =
+        shader::compile_from_sources(include_str!("light.vert"), include_str!("light.frag"))?;
 
     let mut vao_cube: GLuint = 0;
     let mut vao_light: GLuint = 0;
@@ -128,25 +128,6 @@ fn main() -> Result<(), String> {
         gl::EnableVertexAttribArray(0);
     }
 
-    unsafe {
-        gl::UseProgram(program_cube);
-    }
-    let loc_cube_model: GLuint = find_uniform(program_cube, "Model")?;
-    let loc_cube_view: GLuint = find_uniform(program_cube, "View")?;
-    let loc_cube_projection: GLuint = find_uniform(program_cube, "Projection")?;
-    let loc_cube_object_colour: GLuint = find_uniform(program_cube, "ObjectColour")?;
-    let loc_cube_light_colour: GLuint = find_uniform(program_cube, "LightColour")?;
-    let loc_cube_light_model: GLuint = find_uniform(program_cube, "LightModel")?;
-    let loc_cube_intensity: GLuint = find_uniform(program_cube, "Intensity")?;
-    let loc_cube_view_pos: GLuint = find_uniform(program_cube, "ViewPos")?;
-
-    unsafe {
-        gl::UseProgram(program_light);
-    }
-    let loc_light_model: GLuint = find_uniform(program_light, "Model")?;
-    let loc_light_view: GLuint = find_uniform(program_light, "View")?;
-    let loc_light_projection: GLuint = find_uniform(program_light, "Projection")?;
-
     let projection = nalgebra_glm::perspective(
         window.size().0 as f32 / window.size().1 as f32,
         num::Float::to_radians(45.0),
@@ -184,76 +165,36 @@ fn main() -> Result<(), String> {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            gl::UseProgram(program_cube);
+            shader_cube.enable();
 
             let model = nalgebra_glm::translate(&num::one(), &nalgebra_glm::vec3(0.0, 0.0, 0.0));
 
-            gl::UniformMatrix4fv(
-                loc_cube_model as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&model).as_ptr(),
-            );
-            gl::UniformMatrix4fv(
-                loc_cube_view as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&view).as_ptr(),
-            );
-            gl::UniformMatrix4fv(
-                loc_cube_projection as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&projection).as_ptr(),
-            );
-            gl::Uniform3f(loc_cube_object_colour as i32, 1.0, 0.5, 0.31);
-            gl::Uniform3f(loc_cube_light_colour as i32, 1.0, 1.0, 1.0);
+            shader_cube.set_mat4("Model", &model)?;
+            shader_cube.set_mat4("View", &view)?;
+            shader_cube.set_mat4("Projection", &projection)?;
+            shader_cube.set_vec3("ObjectColour", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
+            shader_cube.set_vec3("LightColour", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
 
             let light_scale = 0.3 * (seconds / 3.0).sin() + 0.4;
-            gl::Uniform1f(loc_cube_intensity as i32, light_scale);
+
             let model = nalgebra_glm::scale(
                 &nalgebra_glm::translate(&num::one(), &light_pos),
                 &nalgebra_glm::vec3(light_scale, light_scale, light_scale),
             );
 
-            gl::UniformMatrix4fv(
-                loc_cube_light_model as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&model).as_ptr(),
-            );
-            gl::Uniform3f(
-                loc_cube_view_pos as i32,
-                *camera_pos.index(0),
-                *camera_pos.index(1),
-                *camera_pos.index(2),
-            );
+            shader_cube.set_float("Intensity", light_scale)?;
+            shader_cube.set_mat4("LightModel", &model)?;
+            shader_cube.set_vec3("ViewPos", &camera_pos)?;
 
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // =====================
 
-            gl::UseProgram(program_light);
-
-            gl::UniformMatrix4fv(
-                loc_light_model as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&model).as_ptr(),
-            );
-            gl::UniformMatrix4fv(
-                loc_light_view as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&view).as_ptr(),
-            );
-            gl::UniformMatrix4fv(
-                loc_light_projection as i32,
-                1,
-                gl::FALSE,
-                nalgebra_glm::value_ptr(&projection).as_ptr(),
-            );
+            shader_light.enable();
+            shader_light.set_mat4("Model", &model)?;
+            shader_light.set_mat4("View", &view)?;
+            shader_light.set_mat4("Projection", &projection)?;
 
             gl::BindVertexArray(vao_light);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -272,78 +213,4 @@ where
     E: std::fmt::Display,
 {
     |e: E| e.to_string()
-}
-
-fn find_uniform(program_id: GLuint, name: &str) -> Result<GLuint, String> {
-    let cstr = CString::new(name).map_err(error_to_string())?;
-    let id = unsafe { gl::GetUniformLocation(program_id, cstr.as_ptr() as *const GLchar) };
-    if id < 0 {
-        return Err(format!("Could not find {}", name));
-    }
-    Ok(id as GLuint)
-}
-
-fn compile_shader(source: &str, kind: GLuint) -> Result<GLuint, String> {
-    let cstr = CString::new(source).map_err(error_to_string())?;
-
-    let id: GLuint;
-    unsafe {
-        id = gl::CreateShader(kind);
-        gl::ShaderSource(id, 1, &cstr.as_ptr(), std::ptr::null());
-        gl::CompileShader(id);
-    };
-
-    let mut success: GLint = 0;
-    unsafe {
-        gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
-    }
-    if success == 0 {
-        return Err(format!("Failed to compile {}", source));
-    }
-
-    Ok(id)
-}
-
-fn program_id_from_shaders(sources: &[&str; 2]) -> Result<GLuint, String> {
-    let shaders = [
-        compile_shader(sources[0], gl::VERTEX_SHADER)?,
-        compile_shader(sources[1], gl::FRAGMENT_SHADER)?,
-    ];
-
-    let id = unsafe { gl::CreateProgram() };
-    for shader in &shaders {
-        unsafe {
-            gl::AttachShader(id, *shader);
-        }
-    }
-
-    let mut success: GLint = 0;
-    unsafe {
-        gl::LinkProgram(id);
-        gl::GetProgramiv(id, gl::LINK_STATUS, &mut success);
-    }
-    if success == 0 {
-        let mut len: GLint = 0;
-        unsafe { gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len) };
-        let error = CString::new(
-            std::iter::repeat(' ')
-                .take(len as usize)
-                .collect::<String>(),
-        )
-        .map_err(error_to_string())?;
-        unsafe {
-            gl::GetProgramInfoLog(id, len, std::ptr::null_mut(), error.as_ptr() as *mut GLchar)
-        };
-        return Err(format!(
-            "Failed to link program: {}",
-            error.to_string_lossy().into_owned(),
-        ));
-    }
-
-    for shader in &shaders {
-        unsafe {
-            gl::DetachShader(id, *shader);
-        }
-    }
-    Ok(id)
 }
