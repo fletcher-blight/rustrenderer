@@ -1,11 +1,11 @@
 #version 330 core
-layout (location = 0) in vec3 AttrVertices;
+layout (location = 0) in vec3 attrVertices;
 
-uniform mat4 Model;
-uniform mat4 View;
-uniform mat4 Projection;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProjection;
 
 void main()
 {
-	gl_Position = Projection * View * Model * vec4(AttrVertices, 1.0);
+	gl_Position = uProjection * uView * uModel * vec4(attrVertices, 1.0);
 }

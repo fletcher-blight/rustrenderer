@@ -223,32 +223,27 @@ fn main() -> Result<(), String> {
             let model =
                 nalgebra_glm::rotate(&num::one(), seconds, &nalgebra_glm::vec3(1.0, 1.0, 1.0));
 
-            shader_cube.set_mat4("Model", &model)?;
-            shader_cube.set_mat4("View", &camera.get_view_matrix())?;
-            shader_cube.set_mat4("Projection", &projection)?;
-            shader_cube.set_vec3("ObjectColour", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
-            shader_cube.set_vec3("LightColour", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
+            shader_cube.set_mat4("uModel", &model)?;
+            shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
+            shader_cube.set_mat4("uProjection", &projection)?;
+            shader_cube.set_vec3("uViewPos", &camera.get_position())?;
+            shader_cube.set_vec3("uLightPos", &light_pos)?;
+            shader_cube.set_vec3("uLightColour", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
+            shader_cube.set_vec3("uMaterial.ambient", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
+            shader_cube.set_vec3("uMaterial.diffuse", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
+            shader_cube.set_vec3("uMaterial.specular", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
+            shader_cube.set_float("uMaterial.shininess", 32.0)?;
 
-            let light_scale = 0.5 * (seconds / 3.0).sin() + 0.6;
-
-            let model = nalgebra_glm::scale(
-                &nalgebra_glm::translate(&num::one(), &light_pos),
-                &nalgebra_glm::vec3(light_scale, light_scale, light_scale),
-            );
-
-            shader_cube.set_float("Intensity", light_scale)?;
-            shader_cube.set_mat4("LightModel", &model)?;
-            shader_cube.set_vec3("ViewPos", &camera.get_position())?;
-
+            let model = nalgebra_glm::translate(&num::one(), &light_pos);
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // =====================
 
             shader_light.enable();
-            shader_light.set_mat4("Model", &model)?;
-            shader_light.set_mat4("View", &camera.get_view_matrix())?;
-            shader_light.set_mat4("Projection", &projection)?;
+            shader_light.set_mat4("uModel", &model)?;
+            shader_light.set_mat4("uView", &camera.get_view_matrix())?;
+            shader_light.set_mat4("uProjection", &projection)?;
 
             gl::BindVertexArray(vao_light);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);

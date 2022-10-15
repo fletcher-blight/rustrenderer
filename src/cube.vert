@@ -1,19 +1,17 @@
 #version 330 core
-layout (location = 0) in vec3 AttrVertices;
-layout (location = 1) in vec3 AttrNormals;
+layout (location = 0) in vec3 attrVertices;
+layout (location = 1) in vec3 attrNormals;
 
-out vec3 Normals;
-out vec3 Vertices;
-out vec3 Positions;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProjection;
 
-uniform mat4 Model;
-uniform mat4 View;
-uniform mat4 Projection;
+out vec3 aNormals;
+out vec3 aCubePositions;
 
 void main()
 {
-    Normals = mat3(transpose(inverse(Model))) * AttrNormals;
-    Vertices = AttrVertices;
-    Positions = vec3(Model * vec4(AttrVertices, 1.0));
-	gl_Position = Projection * View * Model * vec4(AttrVertices, 1.0);
+    aNormals = mat3(transpose(inverse(uModel))) * attrNormals;
+    aCubePositions = vec3(uModel * vec4(attrVertices, 1.0));
+	gl_Position = uProjection * uView * uModel * vec4(attrVertices, 1.0);
 }

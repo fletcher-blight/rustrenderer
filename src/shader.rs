@@ -111,14 +111,7 @@ fn compile_shader(source: &str, kind: GLuint) -> Result<ShaderComponent, String>
         ShaderComponent { id }
     };
 
-    let mut success: GLint = 0;
-    unsafe {
-        gl::GetShaderiv(shader_component.id, gl::COMPILE_STATUS, &mut success);
-    }
-    if success == 0 {
-        return Err(format!("Failed to compile {}", source));
-    }
-
+    check_compile(shader_component.id)?;
     Ok(shader_component)
 }
 
@@ -170,3 +163,55 @@ where
 {
     |e: E| e.to_string()
 }
+
+fn check_compile(id: GLuint) -> Result<(), String> {
+    let mut success: GLint = 0;
+    unsafe {
+        gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
+    }
+    if success != 0 {
+        return Ok(());
+    }
+
+    let mut length: GLint = 0;
+    unsafe {
+        gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut length);
+    }
+    let space = std::iter::repeat(' ')
+        .take(length as usize)
+        .collect::<String>();
+    let error = CString::new(space).map_err(error_to_string())?;
+    unsafe {
+        gl::GetShaderInfoLog(
+            id,
+            length,
+            std::ptr::null_mut(),
+            error.as_ptr() as *mut GLchar,
+        );
+    }
+    Err(error.to_string_lossy().into_owned())
+}
+
+// void checkCompileErrors(GLuint shader, std::string type)
+// {
+// GLint success;
+// GLchar infoLog[1024];
+// if(type != "PROGRAM")
+// {
+// glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+// if(!success)
+// {
+// glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+// std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+// }
+// }
+// else
+// {
+// glGetProgramiv(shader, GL_LINK_STATUS, &success);
+// if(!success)
+// {
+// glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+// std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+// }
+// }
+// }
