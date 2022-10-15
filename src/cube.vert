@@ -1,6 +1,6 @@
 #version 330 core
 layout (location = 0) in vec3 AttrVertices;
-layout (location = 0) in vec3 AttrNormals;
+layout (location = 1) in vec3 AttrNormals;
 
 out vec3 Normals;
 out vec3 Vertices;

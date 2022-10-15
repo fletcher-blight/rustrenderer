@@ -20,7 +20,7 @@ void main()
 
     vec3 norm = normalize(Normals);
     vec3 lightDir = normalize(lightCoords - Positions);
-    float diffusionStrength = max(dot(norm, lightCoords), 0.0);
+    float diffusionStrength = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diffusionStrength * LightColour;
 
     float specularStrength = 0.5;

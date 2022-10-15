@@ -229,7 +229,7 @@ fn main() -> Result<(), String> {
             shader_cube.set_vec3("ObjectColour", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
             shader_cube.set_vec3("LightColour", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
 
-            let light_scale = 0.3 * (seconds / 3.0).sin() + 0.4;
+            let light_scale = 0.5 * (seconds / 3.0).sin() + 0.6;
 
             let model = nalgebra_glm::scale(
                 &nalgebra_glm::translate(&num::one(), &light_pos),
