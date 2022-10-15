@@ -173,7 +173,6 @@ fn main() -> Result<(), String> {
         }
 
         let seconds = timer.ticks() as f32 / 1000.0;
-        // let light_pos = nalgebra_glm::vec3(2.5, 2.5, 0.0);
         let mag = 2.5 + (seconds / 4.0).sin();
         let light_pos = nalgebra_glm::rotate_vec3(
             &nalgebra_glm::vec3(mag, 2.0 * (mag - 2.5), mag),
