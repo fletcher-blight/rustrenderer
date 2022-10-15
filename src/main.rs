@@ -227,8 +227,10 @@ fn main() -> Result<(), String> {
             shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
             shader_cube.set_mat4("uProjection", &projection)?;
             shader_cube.set_vec3("uViewPos", &camera.get_position())?;
-            shader_cube.set_vec3("uLightPos", &light_pos)?;
-            shader_cube.set_vec3("uLightColour", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
+            shader_cube.set_vec3("uLight.position", &light_pos)?;
+            shader_cube.set_vec3("uLight.ambient", &nalgebra_glm::vec3(0.2, 0.2, 0.2))?;
+            shader_cube.set_vec3("uLight.diffuse", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
+            shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
             shader_cube.set_vec3("uMaterial.ambient", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
             shader_cube.set_vec3("uMaterial.diffuse", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
             shader_cube.set_vec3("uMaterial.specular", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
