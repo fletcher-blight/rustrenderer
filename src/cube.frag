@@ -8,7 +8,8 @@ struct Material {
 struct Light {
     vec3 position;
     vec3 direction;
-    float cutoff;
+    float inner_cutoff;
+    float outer_cutoff;
 
     vec3 ambient;
     vec3 diffuse;
@@ -41,19 +42,17 @@ void main()
     float diffuse_factor = max(dot(normals, light_dir), 0.0);
     float specular_factor = pow(max(dot(reflect_dir, view_dir), 0.0), uMaterial.shininess);
 
-    vec3 ambient  = uLight.ambient * diffuse_colours;
-    vec3 diffuse  = uLight.diffuse * (diffuse_factor * diffuse_colours);
-    vec3 specular = uLight.specular * (specular_factor * specular_colours);
-    vec3 result = ambient;
+    float theta = dot(light_dir, normalize(-uLight.direction));
+    float epsilon = uLight.inner_cutoff - uLight.outer_cutoff;
+    float intensity = clamp((theta - uLight.outer_cutoff) / epsilon, 0.0, 1.0);
 
-    float radius = dot(light_dir, normalize(-uLight.direction));
-    if (radius > uLight.cutoff) {
-        result += diffuse + specular;
-    }
+    vec3 ambient  = uLight.ambient * diffuse_colours;
+    vec3 diffuse  = intensity * diffuse_factor * uLight.diffuse * diffuse_colours;
+    vec3 specular = intensity * specular_factor * uLight.specular * specular_colours;
 
     float distance = length(uLight.position - aCubePositions);
     float attenuation = 1.0 / (1.0 + uLight.attenuation_linear * distance + uLight.attenuation_quadratic * (distance * distance));
-    result *= attenuation;
 
+    vec3 result = attenuation * (ambient + diffuse + specular);
 	aFragColour = vec4(result, 1.0);
 }

@@ -236,7 +236,14 @@ fn main() -> Result<(), String> {
             shader_cube.set_vec3("uViewPos", &camera.get_position())?;
             shader_cube.set_vec3("uLight.position", &camera.get_position())?;
             shader_cube.set_vec3("uLight.direction", &camera.get_front())?;
-            shader_cube.set_float("uLight.cutoff", num::Float::to_radians(20.0 as f32).cos())?;
+            shader_cube.set_float(
+                "uLight.inner_cutoff",
+                num::Float::to_radians(15.0 as f32).cos(),
+            )?;
+            shader_cube.set_float(
+                "uLight.outer_cutoff",
+                num::Float::to_radians(20.0 as f32).cos(),
+            )?;
             shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
             shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
