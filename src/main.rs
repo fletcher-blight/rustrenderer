@@ -82,13 +82,10 @@ fn main() -> Result<(), String> {
 
     let shader_cube =
         shader::compile_from_sources(include_str!("cube.vert"), include_str!("cube.frag"))?;
-    let shader_light =
-        shader::compile_from_sources(include_str!("light.vert"), include_str!("light.frag"))?;
     let texture_wood_steel_border = texture::create(include_bytes!("wood_steel_border.png"))?;
     let texture_only_steel_border = texture::create(include_bytes!("steel_border.png"))?;
 
     let mut vao_cube: GLuint = 0;
-    let mut vao_light: GLuint = 0;
     let mut vbo: GLuint = 0;
     unsafe {
         gl::GenVertexArrays(1, &mut vao_cube);
@@ -132,22 +129,8 @@ fn main() -> Result<(), String> {
             (6 * std::mem::size_of::<f32>()) as *const std::os::raw::c_void,
         );
         gl::EnableVertexAttribArray(2);
-
-        gl::GenVertexArrays(1, &mut vao_light);
-        gl::BindVertexArray(vao_light);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (8 * std::mem::size_of::<f32>()) as i32,
-            std::ptr::null(),
-        );
-        gl::EnableVertexAttribArray(0);
     }
     let vao_cube = vao_cube;
-    let vao_light = vao_light;
     let vbo = vbo;
 
     let projection = nalgebra_glm::perspective(
@@ -238,12 +221,9 @@ fn main() -> Result<(), String> {
             }
         }
 
-        let light_pos = nalgebra_glm::vec3(1.6, 1.6, 1.6);
-        let light_colour = nalgebra_glm::vec3(1.0, 1.0, 1.0);
+        let light_colour = nalgebra_glm::vec3(1.0 as f32, 1.0, 1.0);
         let diffuse_light = 0.7 * light_colour;
         let ambient_light = 0.2 * diffuse_light;
-
-        let model_light = nalgebra_glm::translate(&num::one(), &light_pos);
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
@@ -254,7 +234,9 @@ fn main() -> Result<(), String> {
             shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
             shader_cube.set_mat4("uProjection", &projection)?;
             shader_cube.set_vec3("uViewPos", &camera.get_position())?;
-            shader_cube.set_vec3("uLight.position", &light_pos)?;
+            shader_cube.set_vec3("uLight.position", &camera.get_position())?;
+            shader_cube.set_vec3("uLight.direction", &camera.get_front())?;
+            shader_cube.set_float("uLight.cutoff", num::Float::to_radians(20.0 as f32).cos())?;
             shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
             shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
@@ -281,17 +263,6 @@ fn main() -> Result<(), String> {
             }
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
-            // =====================
-
-            shader_light.enable();
-            shader_light.set_mat4("uModel", &model_light)?;
-            shader_light.set_mat4("uView", &camera.get_view_matrix())?;
-            shader_light.set_mat4("uProjection", &projection)?;
-            shader_light.set_vec3("uLightColour", &light_colour)?;
-
-            gl::BindVertexArray(vao_light);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-
             assert_eq!(gl::GetError(), 0);
         }
 
@@ -300,7 +271,6 @@ fn main() -> Result<(), String> {
 
     unsafe {
         gl::DeleteVertexArrays(1, &vao_cube as *const GLuint);
-        gl::DeleteVertexArrays(1, &vao_light as *const GLuint);
         gl::DeleteBuffers(1, &vbo as *const GLuint);
     }
 

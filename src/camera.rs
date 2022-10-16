@@ -28,6 +28,10 @@ impl Camera {
         self.position
     }
 
+    pub fn get_front(self: &Self) -> glm::Vec3 {
+        self.front
+    }
+
     pub fn update_position(self: &mut Self, direction: Direction, velocity: f32) {
         match direction {
             Direction::Forward => self.position += velocity * self.front,
