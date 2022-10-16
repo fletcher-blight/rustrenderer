@@ -32,6 +32,10 @@ struct SpotLight {
     float inner_cutoff;
     float outer_cutoff;
 
+    float attenuation_constant;
+    float attenuation_linear;
+    float attenuation_quadratic;
+
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -123,6 +127,9 @@ vec3 compute_spot_lighting(SpotLight light, vec3 normal, vec3 frag_pos, vec3 vie
     float epsilon = light.inner_cutoff - light.outer_cutoff;
     float intensity = clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0);
 
+    float distance = length(light.position - frag_pos);
+    float attenuation = 1.0 / (light.attenuation_constant + light.attenuation_linear * distance + light.attenuation_quadratic * distance * distance);
+
     vec3 diffuse_colours = texture(uMaterial.diffuse, aTextureCoords).rgb;
     vec3 specular_colours = texture(uMaterial.specular, aTextureCoords).rgb;
 
@@ -130,5 +137,5 @@ vec3 compute_spot_lighting(SpotLight light, vec3 normal, vec3 frag_pos, vec3 vie
     vec3 diffuse = intensity * light.diffuse * diffuse_factor * diffuse_colours;
     vec3 specular = intensity * light.specular * specular_factor * specular_colours;
 
-    return (ambient + diffuse + specular);
+    return attenuation * (ambient + diffuse + specular);
 }

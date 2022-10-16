@@ -228,6 +228,9 @@ fn main() -> Result<(), String> {
                 "uSpotLight.outer_cutoff",
                 num::Float::to_radians(17.5 as f32).cos(),
             )?;
+            shader_lighting.set_float("uSpotLight.attenuation_constant", 1.0)?;
+            shader_lighting.set_float("uSpotLight.attenuation_linear", 0.07)?;
+            shader_lighting.set_float("uSpotLight.attenuation_quadratic", 0.017)?;
             shader_lighting.set_vec3("uSpotLight.ambient", &nalgebra_glm::vec3(0.1, 0.1, 0.1))?;
             shader_lighting.set_vec3("uSpotLight.diffuse", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
             shader_lighting.set_vec3("uSpotLight.specular", &nalgebra_glm::vec3(2.0, 2.0, 2.0))?;
