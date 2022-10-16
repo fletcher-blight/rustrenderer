@@ -147,6 +147,7 @@ fn main() -> Result<(), String> {
 
     let mut camera = camera::start_from_world_pos(nalgebra_glm::vec3(0.0, 0.0, 3.0));
     let mut current_movement: [Option<Direction>; 6] = [None, None, None, None, None, None];
+    let mut flashlight_state = true;
 
     let cube_radius: f32 = 10.0;
     let mut rng = rand::thread_rng();
@@ -178,6 +179,7 @@ fn main() -> Result<(), String> {
             &mut last_ticks,
             &mut camera,
             &mut current_movement,
+            &mut flashlight_state,
         ) {
             Some(val) => val,
             None => break,
@@ -197,7 +199,7 @@ fn main() -> Result<(), String> {
             shader_lighting.set_vec3("uViewPos", &camera.get_position())?;
             shader_lighting.set_float("uMaterial.shininess", 32.0)?;
 
-            // Directional Light
+            // Directional Lighting
             shader_lighting.set_vec3(
                 "uDirectionalLight.direction",
                 &nalgebra_glm::vec3(-0.2, -1.0, -0.3),
@@ -214,6 +216,22 @@ fn main() -> Result<(), String> {
                 "uDirectionalLight.specular",
                 &nalgebra_glm::vec3(0.5, 0.5, 0.5),
             )?;
+
+            // Spot Lighting
+            shader_lighting.set_vec3("uSpotLight.position", &camera.get_position())?;
+            shader_lighting.set_vec3("uSpotLight.direction", &camera.get_front())?;
+            shader_lighting.set_float(
+                "uSpotLight.inner_cutoff",
+                num::Float::to_radians(12.5 as f32).cos(),
+            )?;
+            shader_lighting.set_float(
+                "uSpotLight.outer_cutoff",
+                num::Float::to_radians(17.5 as f32).cos(),
+            )?;
+            shader_lighting.set_vec3("uSpotLight.ambient", &nalgebra_glm::vec3(0.1, 0.1, 0.1))?;
+            shader_lighting.set_vec3("uSpotLight.diffuse", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
+            shader_lighting.set_vec3("uSpotLight.specular", &nalgebra_glm::vec3(2.0, 2.0, 2.0))?;
+            shader_lighting.set_int("uFlashlight", flashlight_state as i32)?;
 
             // Point Lighting
             for (i, position) in point_light_positions.iter().enumerate() {
@@ -301,6 +319,7 @@ fn process_events(
     last_ticks: &mut f64,
     camera: &mut Camera,
     current_movement: &mut [Option<Direction>; 6],
+    flashlight_state: &mut bool,
 ) -> Option<f32> {
     for event in event_pump.poll_iter() {
         match event {
@@ -312,6 +331,7 @@ fn process_events(
                 Some(Keycode::S) => current_movement[3] = Some(Direction::Backward),
                 Some(Keycode::Space) => current_movement[4] = Some(Direction::Up),
                 Some(Keycode::LAlt) => current_movement[5] = Some(Direction::Down),
+                Some(Keycode::F) => *flashlight_state = !*flashlight_state,
                 _ => (),
             },
             Event::KeyUp { keycode, .. } => match keycode {
