@@ -3,13 +3,13 @@ mod camera;
 mod shader;
 mod texture;
 
+use crate::camera::Camera;
 use camera::Direction;
 use gl::types::*;
-use rand::rngs::ThreadRng;
-use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::GLProfile;
+use sdl2::{EventPump, TimerSubsystem};
 
 fn main() -> Result<(), String> {
     let sdl = sdl2::init()?;
@@ -141,134 +141,27 @@ fn main() -> Result<(), String> {
     );
 
     let mut camera = camera::start_from_world_pos(nalgebra_glm::vec3(0.0, 0.0, 3.0));
-    let camera_speed: f32 = 10.0;
-    let camera_sensitivity: f32 = 0.2;
-
     let mut current_movement: [Option<Direction>; 6] = [None, None, None, None, None, None];
-    let mut frames: u64 = 0;
-    let mut last_second: u32 = 0;
-
-    let cube_radius: f32 = 10.0;
-    let mut rng = rand::thread_rng();
-    let get_rand_pos = |rng: &mut ThreadRng| (rng.gen::<f32>() * cube_radius) - (cube_radius / 2.0);
-    let cube_states: Vec<(nalgebra_glm::Vec3, f32)> = std::iter::repeat_with(|| {
-        (
-            nalgebra_glm::vec3(
-                get_rand_pos(&mut rng),
-                get_rand_pos(&mut rng),
-                get_rand_pos(&mut rng),
-            ),
-            rng.gen(),
-        )
-    })
-    .take(50)
-    .collect();
 
     let mut event_pump = sdl.event_pump()?;
     let timer = sdl.timer()?;
     let mut last_ticks = timer.performance_counter() as f64;
-    'main: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } => break 'main,
-                Event::KeyDown { keycode, .. } => match keycode {
-                    Some(Keycode::A) => current_movement[0] = Some(Direction::Left),
-                    Some(Keycode::D) => current_movement[1] = Some(Direction::Right),
-                    Some(Keycode::W) => current_movement[2] = Some(Direction::Forward),
-                    Some(Keycode::S) => current_movement[3] = Some(Direction::Backward),
-                    Some(Keycode::Space) => current_movement[4] = Some(Direction::Up),
-                    Some(Keycode::LAlt) => current_movement[5] = Some(Direction::Down),
-                    _ => (),
-                },
-                Event::KeyUp { keycode, .. } => match keycode {
-                    Some(Keycode::A) => current_movement[0] = None,
-                    Some(Keycode::D) => current_movement[1] = None,
-                    Some(Keycode::W) => current_movement[2] = None,
-                    Some(Keycode::S) => current_movement[3] = None,
-                    Some(Keycode::Space) => current_movement[4] = None,
-                    Some(Keycode::LAlt) => current_movement[5] = None,
-                    _ => (),
-                },
-                _ => (),
-            }
-        }
-
-        let now_ticks = timer.performance_counter() as f64;
-        let delta_ticks = now_ticks - last_ticks;
-        let freq_ticks = timer.performance_frequency() as f64;
-        last_ticks = now_ticks;
-
-        let delta_seconds = delta_ticks / freq_ticks;
-        let camera_velocity = (delta_seconds * camera_speed as f64) as f32;
-        let seconds = timer.ticks() as f32 / 1000.0;
-        frames += 1;
-        if seconds as u32 > last_second {
-            last_second = seconds as u32;
-            println!("FPS: {}", frames as f32 / seconds);
-        }
-
-        let mouse_state = sdl2::mouse::RelativeMouseState::new(&event_pump);
-        camera.update_orientation(
-            mouse_state.x() as f32,
-            -mouse_state.y() as f32,
-            camera_sensitivity,
+    loop {
+        let res = process_events(
+            &mut event_pump,
+            &timer,
+            &mut last_ticks,
+            &mut camera,
+            &mut current_movement,
         );
-
-        for movement in &current_movement {
-            match movement {
-                Some(dir) => camera.update_position(*dir, camera_velocity),
-                None => (),
-            }
-        }
-
-        let light_colour = nalgebra_glm::vec3(1.0 as f32, 1.0, 1.0);
-        let diffuse_light = 0.7 * light_colour;
-        let ambient_light = 0.2 * diffuse_light;
+        let seconds = match res {
+            Some(val) => val,
+            None => break,
+        };
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
-            shader_cube.enable();
-
-            shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
-            shader_cube.set_mat4("uProjection", &projection)?;
-            shader_cube.set_vec3("uViewPos", &camera.get_position())?;
-            shader_cube.set_vec3("uLight.position", &camera.get_position())?;
-            shader_cube.set_vec3("uLight.direction", &camera.get_front())?;
-            shader_cube.set_float(
-                "uLight.inner_cutoff",
-                num::Float::to_radians(15.0 as f32).cos(),
-            )?;
-            shader_cube.set_float(
-                "uLight.outer_cutoff",
-                num::Float::to_radians(20.0 as f32).cos(),
-            )?;
-            shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
-            shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
-            shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
-            shader_cube.set_float("uLight.attenuation_linear", 0.09)?;
-            shader_cube.set_float("uLight.attenuation_quadratic", 0.032)?;
-            shader_cube.set_int("uMaterial.diffuse", 0)?;
-            shader_cube.set_int("uMaterial.specular", 1)?;
-            shader_cube.set_float("uMaterial.shininess", 32.0)?;
-
-            gl::ActiveTexture(gl::TEXTURE0);
-            texture_wood_steel_border.bind();
-            gl::ActiveTexture(gl::TEXTURE1);
-            texture_only_steel_border.bind();
-
-            gl::BindVertexArray(vao_cube);
-            for (pos, r) in &cube_states {
-                let model = nalgebra_glm::rotate(
-                    &nalgebra_glm::translate(&num::one(), &pos),
-                    seconds * 10.0 * (r - 0.5),
-                    &nalgebra_glm::vec3(*r, 1.0 / r, r * r),
-                );
-                shader_cube.set_mat4("uModel", &model)?;
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
-            }
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             assert_eq!(gl::GetError(), 0);
         }
@@ -289,4 +182,64 @@ where
     E: std::fmt::Display,
 {
     |e: E| e.to_string()
+}
+
+const CAMERA_SPEED: f32 = 10.0;
+const CAMERA_SENSITIVITY: f32 = 0.2;
+fn process_events(
+    event_pump: &mut EventPump,
+    timer: &TimerSubsystem,
+    last_ticks: &mut f64,
+    camera: &mut Camera,
+    current_movement: &mut [Option<Direction>; 6],
+) -> Option<f32> {
+    for event in event_pump.poll_iter() {
+        match event {
+            Event::Quit { .. } => return None,
+            Event::KeyDown { keycode, .. } => match keycode {
+                Some(Keycode::A) => current_movement[0] = Some(Direction::Left),
+                Some(Keycode::D) => current_movement[1] = Some(Direction::Right),
+                Some(Keycode::W) => current_movement[2] = Some(Direction::Forward),
+                Some(Keycode::S) => current_movement[3] = Some(Direction::Backward),
+                Some(Keycode::Space) => current_movement[4] = Some(Direction::Up),
+                Some(Keycode::LAlt) => current_movement[5] = Some(Direction::Down),
+                _ => (),
+            },
+            Event::KeyUp { keycode, .. } => match keycode {
+                Some(Keycode::A) => current_movement[0] = None,
+                Some(Keycode::D) => current_movement[1] = None,
+                Some(Keycode::W) => current_movement[2] = None,
+                Some(Keycode::S) => current_movement[3] = None,
+                Some(Keycode::Space) => current_movement[4] = None,
+                Some(Keycode::LAlt) => current_movement[5] = None,
+                _ => (),
+            },
+            _ => (),
+        }
+    }
+
+    let now_ticks = timer.performance_counter() as f64;
+    let delta_ticks = now_ticks - *last_ticks;
+    let freq_ticks = timer.performance_frequency() as f64;
+    *last_ticks = now_ticks;
+
+    let delta_seconds = delta_ticks / freq_ticks;
+    let camera_velocity = (delta_seconds * CAMERA_SPEED as f64) as f32;
+    let seconds = timer.ticks() as f32 / 1000.0;
+
+    let mouse_state = sdl2::mouse::RelativeMouseState::new(&event_pump);
+    camera.update_orientation(
+        mouse_state.x() as f32,
+        -mouse_state.y() as f32,
+        CAMERA_SENSITIVITY,
+    );
+
+    for movement in current_movement {
+        match movement {
+            Some(dir) => camera.update_position(*dir, camera_velocity),
+            None => (),
+        }
+    }
+
+    Some(seconds)
 }
