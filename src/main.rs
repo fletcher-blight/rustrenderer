@@ -6,6 +6,7 @@ mod texture;
 use crate::camera::Camera;
 use camera::Direction;
 use gl::types::*;
+use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::GLProfile;
@@ -80,8 +81,12 @@ fn main() -> Result<(), String> {
         -0.5,  0.5, -0.5,       0.0,  1.0,  0.0,        0.0,  1.0,
     ];
 
-    let shader_cube =
-        shader::compile_from_sources(include_str!("cube.vert"), include_str!("cube.frag"))?;
+    let shader_lighting =
+        shader::compile_from_sources(include_str!("lighting.vert"), include_str!("lighting.frag"))?;
+    let shader_light_cube = shader::compile_from_sources(
+        include_str!("light_cube.vert"),
+        include_str!("light_cube.frag"),
+    )?;
     let texture_wood_steel_border = texture::create(include_bytes!("wood_steel_border.png"))?;
     let texture_only_steel_border = texture::create(include_bytes!("steel_border.png"))?;
 
@@ -143,18 +148,37 @@ fn main() -> Result<(), String> {
     let mut camera = camera::start_from_world_pos(nalgebra_glm::vec3(0.0, 0.0, 3.0));
     let mut current_movement: [Option<Direction>; 6] = [None, None, None, None, None, None];
 
+    let cube_radius: f32 = 10.0;
+    let mut rng = rand::thread_rng();
+    let mut create_random_vector = || {
+        nalgebra_glm::vec3(
+            cube_radius * rng.gen::<f32>() - (cube_radius / 2.0),
+            cube_radius * rng.gen::<f32>() - (cube_radius / 2.0),
+            cube_radius * rng.gen::<f32>() - (cube_radius / 2.0),
+        )
+    };
+
+    let cube_positions: Vec<(nalgebra_glm::Vec3, nalgebra_glm::Vec3)> =
+        std::iter::repeat_with(|| (create_random_vector(), create_random_vector()))
+            .take(50)
+            .collect();
+
+    let point_light_positions: Vec<nalgebra_glm::Vec3> =
+        std::iter::repeat_with(create_random_vector)
+            .take(4)
+            .collect();
+
     let mut event_pump = sdl.event_pump()?;
     let timer = sdl.timer()?;
     let mut last_ticks = timer.performance_counter() as f64;
     loop {
-        let res = process_events(
+        let seconds = match process_events(
             &mut event_pump,
             &timer,
             &mut last_ticks,
             &mut camera,
             &mut current_movement,
-        );
-        let seconds = match res {
+        ) {
             Some(val) => val,
             None => break,
         };
@@ -162,6 +186,91 @@ fn main() -> Result<(), String> {
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+            shader_lighting.enable();
+
+            shader_lighting.set_int("uMaterial.diffuse", 0)?;
+            shader_lighting.set_int("uMaterial.specular", 1)?;
+
+            shader_lighting.set_mat4("uProjection", &projection)?;
+            shader_lighting.set_mat4("uView", &camera.get_view_matrix())?;
+            shader_lighting.set_vec3("uViewPos", &camera.get_position())?;
+            shader_lighting.set_float("uMaterial.shininess", 32.0)?;
+
+            // Directional Light
+            shader_lighting.set_vec3(
+                "uDirectionalLight.direction",
+                &nalgebra_glm::vec3(-0.2, -1.0, -0.3),
+            )?;
+            shader_lighting.set_vec3(
+                "uDirectionalLight.ambient",
+                &nalgebra_glm::vec3(0.05, 0.05, 0.05),
+            )?;
+            shader_lighting.set_vec3(
+                "uDirectionalLight.diffuse",
+                &nalgebra_glm::vec3(0.4, 0.4, 0.4),
+            )?;
+            shader_lighting.set_vec3(
+                "uDirectionalLight.specular",
+                &nalgebra_glm::vec3(0.5, 0.5, 0.5),
+            )?;
+
+            // Point Lighting
+            for (i, position) in point_light_positions.iter().enumerate() {
+                shader_lighting
+                    .set_vec3(format!("uPointLights[{}].position", i).as_str(), position)?;
+                shader_lighting.set_vec3(
+                    format!("uPointLights[{}].ambient", i).as_str(),
+                    &nalgebra_glm::vec3(0.05, 0.05, 0.05),
+                )?;
+                shader_lighting.set_vec3(
+                    format!("uPointLights[{}].diffuse", i).as_str(),
+                    &nalgebra_glm::vec3(0.8, 0.8, 0.8),
+                )?;
+                shader_lighting.set_vec3(
+                    format!("uPointLights[{}].specular", i).as_str(),
+                    &nalgebra_glm::vec3(1.0, 1.0, 1.0),
+                )?;
+                shader_lighting.set_float(
+                    format!("uPointLights[{}].attenuation_constant", i).as_str(),
+                    1.0,
+                )?;
+                shader_lighting.set_float(
+                    format!("uPointLights[{}].attenuation_linear", i).as_str(),
+                    0.09,
+                )?;
+                shader_lighting.set_float(
+                    format!("uPointLights[{}].attenuation_quadratic", i).as_str(),
+                    0.032,
+                )?;
+            }
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            texture_wood_steel_border.bind();
+            gl::ActiveTexture(gl::TEXTURE1);
+            texture_only_steel_border.bind();
+
+            for (position, axis) in &cube_positions {
+                let model = nalgebra_glm::rotate(
+                    &nalgebra_glm::translate(&nalgebra_glm::one(), &position),
+                    seconds,
+                    &axis,
+                );
+
+                shader_lighting.set_mat4("uModel", &model)?;
+
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+
+            shader_light_cube.enable();
+
+            shader_light_cube.set_mat4("uProjection", &projection)?;
+            shader_light_cube.set_mat4("uView", &camera.get_view_matrix())?;
+            for position in &point_light_positions {
+                let model = nalgebra_glm::translate(&nalgebra_glm::one(), &position);
+                shader_light_cube.set_mat4("uModel", &model)?;
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
 
             assert_eq!(gl::GetError(), 0);
         }
