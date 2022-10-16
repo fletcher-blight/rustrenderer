@@ -5,6 +5,8 @@ mod texture;
 
 use camera::Direction;
 use gl::types::*;
+use rand::rngs::ThreadRng;
+use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::GLProfile;
@@ -163,6 +165,22 @@ fn main() -> Result<(), String> {
     let mut frames: u64 = 0;
     let mut last_second: u32 = 0;
 
+    let cube_radius: f32 = 10.0;
+    let mut rng = rand::thread_rng();
+    let get_rand_pos = |rng: &mut ThreadRng| (rng.gen::<f32>() * cube_radius) - (cube_radius / 2.0);
+    let cube_states: Vec<(nalgebra_glm::Vec3, f32)> = std::iter::repeat_with(|| {
+        (
+            nalgebra_glm::vec3(
+                get_rand_pos(&mut rng),
+                get_rand_pos(&mut rng),
+                get_rand_pos(&mut rng),
+            ),
+            rng.gen(),
+        )
+    })
+    .take(50)
+    .collect();
+
     let mut event_pump = sdl.event_pump()?;
     let timer = sdl.timer()?;
     let mut last_ticks = timer.performance_counter() as f64;
@@ -225,8 +243,6 @@ fn main() -> Result<(), String> {
         let diffuse_light = 0.7 * light_colour;
         let ambient_light = 0.2 * diffuse_light;
 
-        let model_cube =
-            nalgebra_glm::rotate(&num::one(), seconds, &nalgebra_glm::vec3(1.0, 1.0, 1.0));
         let model_light = nalgebra_glm::translate(&num::one(), &light_pos);
 
         unsafe {
@@ -235,11 +251,10 @@ fn main() -> Result<(), String> {
 
             shader_cube.enable();
 
-            shader_cube.set_mat4("uModel", &model_cube)?;
             shader_cube.set_mat4("uView", &camera.get_view_matrix())?;
             shader_cube.set_mat4("uProjection", &projection)?;
             shader_cube.set_vec3("uViewPos", &camera.get_position())?;
-            shader_cube.set_vec3("uLight.position", &light_pos)?;
+            shader_cube.set_vec3("uLight.direction", &nalgebra_glm::vec3(-0.2, -1.0, -0.3))?;
             shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
             shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
@@ -253,6 +268,15 @@ fn main() -> Result<(), String> {
             texture_only_steel_border.bind();
 
             gl::BindVertexArray(vao_cube);
+            for (pos, r) in &cube_states {
+                let model = nalgebra_glm::rotate(
+                    &nalgebra_glm::translate(&num::one(), &pos),
+                    seconds * 10.0 * (r - 0.5),
+                    &nalgebra_glm::vec3(*r, 1.0 / r, r * r),
+                );
+                shader_cube.set_mat4("uModel", &model)?;
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // =====================
