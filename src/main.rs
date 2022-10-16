@@ -83,6 +83,7 @@ fn main() -> Result<(), String> {
     let shader_light =
         shader::compile_from_sources(include_str!("light.vert"), include_str!("light.frag"))?;
     let texture_wood_steel_border = texture::create(include_bytes!("wood_steel_border.png"))?;
+    let texture_only_steel_border = texture::create(include_bytes!("steel_border.png"))?;
 
     let mut vao_cube: GLuint = 0;
     let mut vao_light: GLuint = 0;
@@ -221,7 +222,7 @@ fn main() -> Result<(), String> {
 
         let light_pos = nalgebra_glm::vec3(1.6, 1.6, 1.6);
         let light_colour = nalgebra_glm::vec3(1.0, 1.0, 1.0);
-        let diffuse_light = 0.5 * light_colour;
+        let diffuse_light = 0.7 * light_colour;
         let ambient_light = 0.2 * diffuse_light;
 
         let model_cube =
@@ -243,11 +244,13 @@ fn main() -> Result<(), String> {
             shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
             shader_cube.set_int("uMaterial.diffuse", 0)?;
-            shader_cube.set_vec3("uMaterial.specular", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
+            shader_cube.set_int("uMaterial.specular", 1)?;
             shader_cube.set_float("uMaterial.shininess", 32.0)?;
 
             gl::ActiveTexture(gl::TEXTURE0);
             texture_wood_steel_border.bind();
+            gl::ActiveTexture(gl::TEXTURE1);
+            texture_only_steel_border.bind();
 
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
