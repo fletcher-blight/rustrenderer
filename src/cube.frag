@@ -6,11 +6,14 @@ struct Material {
 };
 
 struct Light {
-    vec3 direction;
+    vec3 position;
 
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float attenuation_linear;
+    float attenuation_quadratic;
 };
 
 uniform Material uMaterial;
@@ -26,7 +29,7 @@ out vec4 aFragColour;
 void main()
 {
     vec3 normals = normalize(aNormals);
-    vec3 light_dir = normalize(-uLight.direction);
+    vec3 light_dir = normalize(uLight.position - aCubePositions);
     vec3 view_dir = normalize(uViewPos - aCubePositions);
     vec3 reflect_dir = reflect(-light_dir, normals);
 
@@ -40,6 +43,9 @@ void main()
     vec3 diffuse  = uLight.diffuse * (diffuse_factor * diffuse_colours);
     vec3 specular = uLight.specular * (specular_factor * specular_colours);
 
-    vec3 result = ambient + diffuse + specular;
+    float distance = length(uLight.position - aCubePositions);
+    float attenuation = 1.0 / (1.0 + uLight.attenuation_linear * distance + uLight.attenuation_quadratic * (distance * distance));
+
+    vec3 result = attenuation * (ambient + diffuse + specular);
 	aFragColour = vec4(result, 1.0);
 }
