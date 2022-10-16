@@ -7,13 +7,21 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn enable(self: &Self) {
+    pub fn enable(&self) {
         unsafe {
             gl::UseProgram(self.id);
         }
     }
 
-    pub fn set_float(self: &Self, name: &str, value: f32) -> Result<(), String> {
+    pub fn set_int(&self, name: &str, value: i32) -> Result<(), String> {
+        let loc = find_uniform(self.id, name)?;
+        unsafe {
+            gl::Uniform1i(loc as i32, value);
+        }
+        Ok(())
+    }
+
+    pub fn set_float(&self, name: &str, value: f32) -> Result<(), String> {
         let loc = find_uniform(self.id, name)?;
         unsafe {
             gl::Uniform1f(loc as i32, value);
@@ -21,7 +29,7 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_vec3(self: &Self, name: &str, vec: &nalgebra_glm::Vec3) -> Result<(), String> {
+    pub fn set_vec3(&self, name: &str, vec: &nalgebra_glm::Vec3) -> Result<(), String> {
         let loc = find_uniform(self.id, name)?;
         unsafe {
             gl::Uniform3f(loc as i32, *vec.index(0), *vec.index(1), *vec.index(2));
@@ -29,7 +37,7 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_mat4(self: &Self, name: &str, mat: &nalgebra_glm::Mat4) -> Result<(), String> {
+    pub fn set_mat4(&self, name: &str, mat: &nalgebra_glm::Mat4) -> Result<(), String> {
         let loc = find_uniform(self.id, name)?;
         unsafe {
             gl::UniformMatrix4fv(
@@ -191,27 +199,3 @@ fn check_compile(id: GLuint) -> Result<(), String> {
     }
     Err(error.to_string_lossy().into_owned())
 }
-
-// void checkCompileErrors(GLuint shader, std::string type)
-// {
-// GLint success;
-// GLchar infoLog[1024];
-// if(type != "PROGRAM")
-// {
-// glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-// if(!success)
-// {
-// glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-// std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-// }
-// }
-// else
-// {
-// glGetProgramiv(shader, GL_LINK_STATUS, &success);
-// if(!success)
-// {
-// glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-// std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-// }
-// }
-// }

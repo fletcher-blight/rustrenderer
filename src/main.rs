@@ -1,6 +1,7 @@
 extern crate gl;
 mod camera;
 mod shader;
+mod texture;
 
 use camera::Direction;
 use gl::types::*;
@@ -32,54 +33,56 @@ fn main() -> Result<(), String> {
     }
 
     #[rustfmt::skip]
-    let vertices_cube: [f32; 216] = [
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    let vertices_cube: [f32; 288] = [
+        // positions            // normals              // texture coords
+        -0.5, -0.5, -0.5,       0.0,  0.0, -1.0,        0.0,  0.0,
+        0.5, -0.5, -0.5,        0.0,  0.0, -1.0,        1.0,  0.0,
+        0.5,  0.5, -0.5,        0.0,  0.0, -1.0,        1.0,  1.0,
+        0.5,  0.5, -0.5,        0.0,  0.0, -1.0,        1.0,  1.0,
+        -0.5,  0.5, -0.5,       0.0,  0.0, -1.0,        0.0,  1.0,
+        -0.5, -0.5, -0.5,       0.0,  0.0, -1.0,        0.0,  0.0,
 
-        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-        0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-        0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-        0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-        -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+        -0.5, -0.5,  0.5,       0.0,  0.0,  1.0,        0.0,  0.0,
+        0.5, -0.5,  0.5,        0.0,  0.0,  1.0,        1.0,  0.0,
+        0.5,  0.5,  0.5,        0.0,  0.0,  1.0,        1.0,  1.0,
+        0.5,  0.5,  0.5,        0.0,  0.0,  1.0,        1.0,  1.0,
+        -0.5,  0.5,  0.5,       0.0,  0.0,  1.0,        0.0,  1.0,
+        -0.5, -0.5,  0.5,       0.0,  0.0,  1.0,        0.0,  0.0,
 
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5,       -1.0,  0.0,  0.0,       1.0,  0.0,
+        -0.5,  0.5, -0.5,       -1.0,  0.0,  0.0,       1.0,  1.0,
+        -0.5, -0.5, -0.5,       -1.0,  0.0,  0.0,       0.0,  1.0,
+        -0.5, -0.5, -0.5,       -1.0,  0.0,  0.0,       0.0,  1.0,
+        -0.5, -0.5,  0.5,       -1.0,  0.0,  0.0,       0.0,  0.0,
+        -0.5,  0.5,  0.5,       -1.0,  0.0,  0.0,       1.0,  0.0,
 
-        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-        0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-        0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
-        0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+        0.5,  0.5,  0.5,        1.0,  0.0,  0.0,        1.0,  0.0,
+        0.5,  0.5, -0.5,        1.0,  0.0,  0.0,        1.0,  1.0,
+        0.5, -0.5, -0.5,        1.0,  0.0,  0.0,        0.0,  1.0,
+        0.5, -0.5, -0.5,        1.0,  0.0,  0.0,        0.0,  1.0,
+        0.5, -0.5,  0.5,        1.0,  0.0,  0.0,        0.0,  0.0,
+        0.5,  0.5,  0.5,        1.0,  0.0,  0.0,        1.0,  0.0,
 
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,       0.0, -1.0,  0.0,        0.0,  1.0,
+        0.5, -0.5, -0.5,        0.0, -1.0,  0.0,        1.0,  1.0,
+        0.5, -0.5,  0.5,        0.0, -1.0,  0.0,        1.0,  0.0,
+        0.5, -0.5,  0.5,        0.0, -1.0,  0.0,        1.0,  0.0,
+        -0.5, -0.5,  0.5,       0.0, -1.0,  0.0,        0.0,  0.0,
+        -0.5, -0.5, -0.5,       0.0, -1.0,  0.0,        0.0,  1.0,
 
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
+        -0.5,  0.5, -0.5,       0.0,  1.0,  0.0,        0.0,  1.0,
+        0.5,  0.5, -0.5,        0.0,  1.0,  0.0,        1.0,  1.0,
+        0.5,  0.5,  0.5,        0.0,  1.0,  0.0,        1.0,  0.0,
+        0.5,  0.5,  0.5,        0.0,  1.0,  0.0,        1.0,  0.0,
+        -0.5,  0.5,  0.5,       0.0,  1.0,  0.0,        0.0,  0.0,
+        -0.5,  0.5, -0.5,       0.0,  1.0,  0.0,        0.0,  1.0,
     ];
 
     let shader_cube =
         shader::compile_from_sources(include_str!("cube.vert"), include_str!("cube.frag"))?;
     let shader_light =
         shader::compile_from_sources(include_str!("light.vert"), include_str!("light.frag"))?;
+    let texture_wood_steel_border = texture::create(include_bytes!("wood_steel_border.png"))?;
 
     let mut vao_cube: GLuint = 0;
     let mut vao_light: GLuint = 0;
@@ -104,7 +107,7 @@ fn main() -> Result<(), String> {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as i32,
+            (8 * std::mem::size_of::<f32>()) as i32,
             std::ptr::null(),
         );
         gl::EnableVertexAttribArray(0);
@@ -113,10 +116,19 @@ fn main() -> Result<(), String> {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as i32,
+            (8 * std::mem::size_of::<f32>()) as i32,
             (3 * std::mem::size_of::<f32>()) as *const std::os::raw::c_void,
         );
         gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (8 * std::mem::size_of::<f32>()) as i32,
+            (6 * std::mem::size_of::<f32>()) as *const std::os::raw::c_void,
+        );
+        gl::EnableVertexAttribArray(2);
 
         gl::GenVertexArrays(1, &mut vao_light);
         gl::BindVertexArray(vao_light);
@@ -126,7 +138,7 @@ fn main() -> Result<(), String> {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as i32,
+            (8 * std::mem::size_of::<f32>()) as i32,
             std::ptr::null(),
         );
         gl::EnableVertexAttribArray(0);
@@ -207,17 +219,8 @@ fn main() -> Result<(), String> {
             }
         }
 
-        let mag = 2.5 + (seconds / 4.0).sin();
-        let light_pos = nalgebra_glm::rotate_vec3(
-            &nalgebra_glm::vec3(mag, 2.0 * (mag - 2.5), mag),
-            seconds,
-            &nalgebra_glm::vec3(0.0, 1.0, 0.0),
-        );
-        let light_colour = nalgebra_glm::vec3(
-            (2.0 * seconds).sin(),
-            (0.7 * seconds).sin(),
-            (1.3 * seconds).sin(),
-        );
+        let light_pos = nalgebra_glm::vec3(1.6, 1.6, 1.6);
+        let light_colour = nalgebra_glm::vec3(1.0, 1.0, 1.0);
         let diffuse_light = 0.5 * light_colour;
         let ambient_light = 0.2 * diffuse_light;
 
@@ -239,10 +242,12 @@ fn main() -> Result<(), String> {
             shader_cube.set_vec3("uLight.ambient", &ambient_light)?;
             shader_cube.set_vec3("uLight.diffuse", &diffuse_light)?;
             shader_cube.set_vec3("uLight.specular", &nalgebra_glm::vec3(1.0, 1.0, 1.0))?;
-            shader_cube.set_vec3("uMaterial.ambient", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
-            shader_cube.set_vec3("uMaterial.diffuse", &nalgebra_glm::vec3(1.0, 0.5, 0.31))?;
+            shader_cube.set_int("uMaterial.diffuse", 0)?;
             shader_cube.set_vec3("uMaterial.specular", &nalgebra_glm::vec3(0.5, 0.5, 0.5))?;
             shader_cube.set_float("uMaterial.shininess", 32.0)?;
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            texture_wood_steel_border.bind();
 
             gl::BindVertexArray(vao_cube);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
